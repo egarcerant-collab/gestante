@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { PatientData } from "@/lib/types";
-import { Users, AlertTriangle, Baby, FileText, RotateCcw } from "lucide-react";
+import { Users, AlertTriangle, Baby, FileText, RotateCcw, Stethoscope } from "lucide-react";
 import { useMemo } from "react";
 
 interface SummarySectionProps {
@@ -27,16 +27,22 @@ const StatCard = ({ title, value, icon: Icon }: { title: string; value: string |
 export function SummarySection({ data, fileName, onReset }: SummarySectionProps) {
   const summary = useMemo(() => {
     if (!data || data.length === 0) {
-      return { totalPatients: 0, avgAge: "0", highRisk: 0, adolescent: 0 };
+      return { totalPatients: 0, avgAge: "0", highRisk: 0, adolescent: 0, validUltrasounds: 0 };
     }
 
     const ageKey = "Edad_(años)";
     const riskKey = "Clasificación_del_riesgo";
+    const ultrasoundKeys = [
+        "ECOGRAFIA_OBSTETRICA_Ecografia_obstétrica_con_translucencia_nucal_(10,6_-_13,6)",
+        "ECOGRAFIA_OBSTETRICA_Ecografia_Obstetrica_para_la_detección_de_anomalias_estructurales_(18_-_23)",
+        "ECOGRAFIA_OBSTETRICA_Otras_ecografías?"
+    ];
 
     let totalAge = 0;
     let validAgeCount = 0;
     let highRiskCount = 0;
     let adolescentCount = 0;
+    let invalidUltrasoundCount = 0;
 
     data.forEach(patient => {
       const age = Number(patient[ageKey]);
@@ -50,6 +56,14 @@ export function SummarySection({ data, fileName, onReset }: SummarySectionProps)
       if (String(patient[riskKey]).toLowerCase().includes('alto')) {
         highRiskCount++;
       }
+
+      const isInvalid = ultrasoundKeys.every(key => 
+        patient[key] && String(patient[key]).toLowerCase().includes('sin datos')
+      );
+
+      if(isInvalid) {
+        invalidUltrasoundCount++;
+      }
     });
 
     return {
@@ -57,6 +71,7 @@ export function SummarySection({ data, fileName, onReset }: SummarySectionProps)
       avgAge: validAgeCount > 0 ? (totalAge / validAgeCount).toFixed(1) : "N/A",
       highRisk: highRiskCount,
       adolescent: adolescentCount,
+      validUltrasounds: data.length - invalidUltrasoundCount,
     };
   }, [data]);
   
@@ -75,12 +90,14 @@ export function SummarySection({ data, fileName, onReset }: SummarySectionProps)
                 Analyze New File
             </Button>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             <StatCard title="Total Patients" value={summary.totalPatients} icon={Users} />
             <StatCard title="High-Risk" value={summary.highRisk} icon={AlertTriangle} />
             <StatCard title="Adolescents (<18)" value={summary.adolescent} icon={Baby} />
             <StatCard title="Average Age" value={summary.avgAge} icon={Users} />
+            <StatCard title="Valid Ultrasounds" value={summary.validUltrasounds} icon={Stethoscope} />
         </div>
     </div>
   );
 }
+
