@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useState } from "react";
@@ -10,6 +11,14 @@ import { useToast } from "@/hooks/use-toast";
 interface FileUploadProps {
   onFileParse: (file: File) => void;
 }
+
+const ALLOWED_FILE_TYPES = [
+    "text/csv", 
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+];
+const ALLOWED_EXTENSIONS = ['.csv', '.xls', '.xlsx'];
+
 
 export function FileUpload({ onFileParse }: FileUploadProps) {
   const [file, setFile] = useState<File | null>(null);
@@ -25,13 +34,14 @@ export function FileUpload({ onFileParse }: FileUploadProps) {
   };
   
   const validateAndSetFile = (file: File) => {
-    if (file.type === "text/csv" || file.name.endsWith('.csv')) {
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (ALLOWED_FILE_TYPES.includes(file.type) || ALLOWED_EXTENSIONS.includes(fileExtension)) {
        setFile(file);
     } else {
       toast({
         variant: "destructive",
         title: "Invalid File Type",
-        description: "Please upload a valid CSV file.",
+        description: "Please upload a valid CSV, XLS, or XLSX file.",
       });
     }
   }
@@ -66,7 +76,7 @@ export function FileUpload({ onFileParse }: FileUploadProps) {
       <CardHeader>
         <CardTitle>Upload Your Data</CardTitle>
         <CardDescription>
-          Import a CSV file with patient data to begin analysis. If you have an Excel file, please save it as CSV first.
+          Import a CSV, XLS, or XLSX file with patient data to begin analysis.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -80,13 +90,13 @@ export function FileUpload({ onFileParse }: FileUploadProps) {
           <p className="mt-4 text-sm text-muted-foreground">
             <span className="font-semibold text-primary">Click to upload</span> or drag and drop
           </p>
-          <p className="text-xs text-muted-foreground">CSV files only</p>
+          <p className="text-xs text-muted-foreground">CSV, XLS, or XLSX files</p>
           <Input
             ref={fileInputRef}
             type="file"
             className="hidden"
             onChange={handleFileChange}
-            accept=".csv"
+            accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             disabled={isLoading}
           />
         </div>

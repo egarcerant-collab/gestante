@@ -1,6 +1,8 @@
+
 "use client";
 
 import { useState } from "react";
+import * as XLSX from 'xlsx';
 import { Header } from "@/components/Header";
 import { FileUpload } from "@/components/dashboard/FileUpload";
 import { SummarySection } from "@/components/dashboard/SummarySection";
@@ -45,6 +47,22 @@ function parseCsv(csvString: string): { data: PatientData[], error: string | nul
   }
 }
 
+function convertJsonToCsv(jsonData: PatientData[]): string {
+    if (jsonData.length === 0) {
+        return "";
+    }
+    const headers = Object.keys(jsonData[0]);
+    const csvRows = [headers.join(',')];
+    for (const row of jsonData) {
+        const values = headers.map(header => {
+            const escaped = (''+row[header]).replace(/"/g, '\\"');
+            return `"${escaped}"`;
+        });
+        csvRows.push(values.join(','));
+    }
+    return csvRows.join('\n');
+}
+
 export default function Home() {
   const [data, setData] = useState<PatientData[] | null>(null);
   const [csvString, setCsvString] = useState<string | null>(null);
@@ -62,19 +80,37 @@ export default function Home() {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const text = e.target?.result as string;
-        const { data: jsonData, error: parseError } = parseCsv(text);
+        const fileContent = e.target?.result;
+        let jsonData: PatientData[] | null = null;
+        let parseError: string | null = null;
+        let generatedCsvString: string | null = null;
+
+        if (file.type === "text/csv" || file.name.endsWith('.csv')) {
+            const { data, error } = parseCsv(fileContent as string);
+            jsonData = data;
+            parseError = error;
+            generatedCsvString = fileContent as string;
+        } else if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
+            const workbook = XLSX.read(fileContent, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json<PatientData>(worksheet);
+            jsonData = json;
+            generatedCsvString = convertJsonToCsv(json);
+        } else {
+            throw new Error("Unsupported file type.");
+        }
         
         if (parseError) {
           throw new Error(parseError);
         }
 
         setData(jsonData);
-        setCsvString(text);
+        setCsvString(generatedCsvString);
         setError(null);
       } catch (err: any) {
         console.error("Error parsing file:", err);
-        setError(err.message || "Failed to parse the file. Please ensure it's a valid CSV.");
+        setError(err.message || "Failed to parse the file. Please ensure it's a valid CSV, XLS, or XLSX file.");
         setData(null);
         setCsvString(null);
       } finally {
@@ -85,7 +121,12 @@ export default function Home() {
       setError("Error reading the file.");
       setIsLoading(false);
     }
-    reader.readAsText(file, 'UTF-8');
+    
+    if (file.type === "text/csv" || file.name.endsWith('.csv')) {
+        reader.readAsText(file, 'UTF-8');
+    } else {
+        reader.readAsArrayBuffer(file);
+    }
   };
 
   const handleReset = () => {
