@@ -75,10 +75,20 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Detalles de la Cotización</CardTitle>
-        <CardDescription>
-          A continuación se presenta el desglose de los ítems, cantidades, precios e impuestos.
-        </CardDescription>
+        <div className="flex justify-between items-start">
+            <div>
+                <CardTitle>Detalles de la Cotización</CardTitle>
+                <CardDescription>
+                A continuación se presenta el desglose de los ítems, cantidades, precios e impuestos.
+                </CardDescription>
+            </div>
+            <div className="text-right text-sm text-muted-foreground">
+                <p className="font-bold text-foreground">DISTRIBUIDORA MILADYS SOLANO</p>
+                <p>NIT: 1122813197-5</p>
+                <p>CR 24 CL 13 145, Becerril, Cesar</p>
+                <p>Celular: 3167533999</p>
+            </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="border rounded-lg">
