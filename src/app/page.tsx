@@ -95,8 +95,8 @@ export default function Home() {
                 const description = item['DESCRIPCION'] || '';
                 let hasIva = false;
                 if (description) {
-                    // Small delay to respect API rate limits.
-                    await new Promise(resolve => setTimeout(resolve, 200)); 
+                    // Increased delay to respect API rate limits.
+                    await new Promise(resolve => setTimeout(resolve, 1000)); 
                     const result = await checkIva(description);
                     hasIva = result.hasIva;
                 }
