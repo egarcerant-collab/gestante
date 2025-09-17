@@ -88,20 +88,20 @@ export default function Home() {
           throw new Error(parseError);
         }
 
-        if (jsonData) {
-            // Enrich data with AI, processing items sequentially to avoid rate limits.
-            const enrichedData = [];
-            for (const item of jsonData) {
-                const description = item['DESCRIPCION'] || '';
-                let hasIva = false;
-                if (description) {
-                    // Increased delay to respect API rate limits.
-                    await new Promise(resolve => setTimeout(resolve, 6000)); 
-                    const result = await checkIva(description);
-                    hasIva = result.hasIva;
-                }
-                enrichedData.push({ ...item, hasIva });
+        if (jsonData && jsonData.length > 0) {
+            // Enrich data with AI, processing all items in a single batch.
+            const descriptions = jsonData.map(item => item['DESCRIPCION'] || '');
+            const ivaResults = await checkIva(descriptions);
+            
+            if (ivaResults.results.length !== jsonData.length) {
+                console.error("Mismatch between items and AI results count.");
+                throw new Error("La IA no pudo procesar todos los artículos. Inténtelo de nuevo.");
             }
+
+            const enrichedData = jsonData.map((item, index) => {
+                return { ...item, hasIva: ivaResults.results[index].hasIva };
+            });
+
             setData(enrichedData);
         } else {
             setData([]);
