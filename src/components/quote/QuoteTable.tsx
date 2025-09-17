@@ -1,9 +1,11 @@
 
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import {
   Table,
   TableBody,
@@ -15,7 +17,12 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Calendar as CalendarIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 const IVA_RATE = 0.19; // 19% para Colombia
 
@@ -23,9 +30,30 @@ interface QuoteTableProps {
     items: any[];
 }
 
+interface ClientInfo {
+  name: string;
+  nit: string;
+  address: string;
+  phone: string;
+  email: string;
+}
+
 export function QuoteTable({ items = [] }: QuoteTableProps) {
   const quoteRef = useRef<HTMLDivElement>(null);
-  
+  const [date, setDate] = useState<Date>(new Date());
+  const [clientInfo, setClientInfo] = useState<ClientInfo>({
+    name: "RESGUARDO INDIGENA SOCORPA",
+    nit: "824002172-7",
+    address: "CR 7 4 A 45 BRR TRUJILLO, Becerril, Cesar, Colombia",
+    phone: "3107455414",
+    email: "cabildosokorpa@gmail.com",
+  });
+
+  const handleClientInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setClientInfo(prev => ({ ...prev, [name]: value }));
+  };
+
   if (items.length === 0) {
     return (
         <Card>
@@ -73,7 +101,7 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
         (doc as any).autoTable({
             head: [['Descripción', 'Cantidad', 'Valor Unitario', 'Incluye IVA', 'Total']],
             body: tableData,
-            startY: 40,
+            startY: 70,
             didDrawPage: function (data: any) {
                 // Header
                 doc.addImage(dataURL, 'PNG', data.settings.margin.left, 15, 20, 20);
@@ -86,8 +114,18 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
                 doc.text('Celular: 3167533999', data.settings.margin.left + 25, 36);
                 
                 doc.setFontSize(18);
-                doc.text('Cotización', data.settings.margin.left + 150, 22);
+                doc.text('Cotización', 150, 22);
+                doc.setFontSize(10);
+                doc.text(`Fecha: ${format(date, "PPP", { locale: es })}`, 150, 28);
 
+
+                // Client Info
+                doc.setFontSize(12);
+                doc.text('Cliente:', data.settings.margin.left, 50);
+                doc.setFontSize(10);
+                doc.text(`${clientInfo.name} (NIT: ${clientInfo.nit})`, data.settings.margin.left + 20, 50);
+                doc.text(`Dirección: ${clientInfo.address}`, data.settings.margin.left, 56);
+                doc.text(`Teléfono: ${clientInfo.phone} | Email: ${clientInfo.email}`, data.settings.margin.left, 62);
             },
             foot: [
                 [{ content: 'Subtotal', colSpan: 4, styles: { halign: 'right' } }, { content: totals.subtotal, styles: { halign: 'right' } }],
@@ -196,6 +234,57 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
                 </Button>
             </div>
         </div>
+        <div className="mt-6 p-4 border rounded-lg bg-muted/20">
+            <h3 className="font-semibold mb-4 text-lg">Información del Cliente y Fecha</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="client-name">Cliente</Label>
+                    <Input id="client-name" name="name" value={clientInfo.name} onChange={handleClientInfoChange} />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="client-nit">NIT/C.C.</Label>
+                    <Input id="client-nit" name="nit" value={clientInfo.nit} onChange={handleClientInfoChange} />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="client-address">Dirección</Label>
+                    <Input id="client-address" name="address" value={clientInfo.address} onChange={handleClientInfoChange} />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="client-phone">Teléfono</Label>
+                    <Input id="client-phone" name="phone" value={clientInfo.phone} onChange={handleClientInfoChange} />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="client-email">Email</Label>
+                    <Input id="client-email" name="email" value={clientInfo.email} onChange={handleClientInfoChange} />
+                </div>
+                <div className="space-y-2">
+                     <Label htmlFor="quote-date">Fecha de Cotización</Label>
+                     <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                            variant={"outline"}
+                            className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !date && "text-muted-foreground"
+                            )}
+                            >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {date ? format(date, "PPP", { locale: es }) : <span>Seleccione una fecha</span>}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                            <Calendar
+                            mode="single"
+                            selected={date}
+                            onSelect={(d) => setDate(d || new Date())}
+                            initialFocus
+                            locale={es}
+                            />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+            </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="border rounded-lg">
@@ -246,3 +335,5 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
     </Card>
   );
 }
+
+    
