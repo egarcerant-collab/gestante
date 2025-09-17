@@ -45,6 +45,36 @@ function parseCsv(csvString: string): { data: any[], error: string | null } {
   }
 }
 
+const processInBatches = async (items: any[], batchSize: number, delay: number) => {
+    let results: any[] = [];
+    for (let i = 0; i < items.length; i += batchSize) {
+        const batch = items.slice(i, i + batchSize);
+        const descriptions = batch.map(item => item['DESCRIPCION'] || '');
+        try {
+            const ivaResults = await checkIva(descriptions);
+            if (ivaResults.results.length !== batch.length) {
+                // If a batch fails, we can decide to throw or mark items as failed
+                throw new Error(`AI results mismatch in batch. Expected ${batch.length}, got ${ivaResults.results.length}`);
+            }
+            const enrichedBatch = batch.map((item, index) => {
+                return { ...item, hasIva: ivaResults.results[index].hasIva };
+            });
+            results = results.concat(enrichedBatch);
+        } catch (error) {
+            console.error("Error processing batch:", error);
+            // Mark batch items as failed to process
+             const failedBatch = batch.map(item => ({ ...item, hasIva: false, error: 'AI processing failed' }));
+             results = results.concat(failedBatch);
+        }
+
+        // Avoid hitting rate limits
+        if (i + batchSize < items.length) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+    return results;
+}
+
 
 export default function Home() {
   const [data, setData] = useState<any[] | null>(null);
@@ -89,18 +119,8 @@ export default function Home() {
         }
 
         if (jsonData && jsonData.length > 0) {
-            const descriptions = jsonData.map(item => item['DESCRIPCION'] || '');
-            const ivaResults = await checkIva(descriptions);
-            
-            if (ivaResults.results.length !== jsonData.length) {
-                console.error("Mismatch between items and AI results count.");
-                throw new Error("La IA no pudo procesar todos los artículos. Inténtelo de nuevo.");
-            }
-
-            const enrichedData = jsonData.map((item, index) => {
-                return { ...item, hasIva: ivaResults.results[index].hasIva };
-            });
-
+            // Process in batches of 5 with a 2-second delay between batches
+            const enrichedData = await processInBatches(jsonData, 5, 2000); 
             setData(enrichedData);
         } else {
             setData([]);
