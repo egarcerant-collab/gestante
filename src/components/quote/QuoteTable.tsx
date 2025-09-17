@@ -114,18 +114,21 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
             }
         });
 
-        const date = new Date().toLocaleDateString('es-CO');
-        doc.save(`cotizacion-${date}.pdf`);
+        doc.output('dataurlnewwindow');
     };
-    img.onerror = () => {
-        console.error("Error loading logo for PDF.");
+    img.onerror = (e) => {
+        console.error("Error loading image for PDF.", e);
         // Fallback if logo fails to load
         (doc as any).autoTable({
             head: [['Descripción', 'Cantidad', 'Valor Unitario', 'Incluye IVA', 'Total']],
             body: tableData,
+             foot: [
+                [{ content: 'Subtotal', colSpan: 4, styles: { halign: 'right' } }, { content: totals.subtotal, styles: { halign: 'right' } }],
+                [{ content: 'IVA (19%)', colSpan: 4, styles: { halign: 'right' } }, { content: totals.ivaTotal, styles: { halign: 'right' } }],
+                [{ content: 'Total a Pagar', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fontSize: 12 } }, { content: totals.total, styles: { halign: 'right', fontStyle: 'bold', fontSize: 12 } }]
+            ],
         });
-        const date = new Date().toLocaleDateString('es-CO');
-        doc.save(`cotizacion-${date}.pdf`);
+        doc.output('dataurlnewwindow');
     }
 };
 
@@ -137,11 +140,13 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
         const valorUnitario = parseFloat(item['VALOR UNITARIO']) || 0;
         const quantity = parseInt(item.quantity) || 1;
         const itemTotal = quantity * valorUnitario;
-        subtotal += itemTotal;
         
         const hasIvaString = String(item.hasIva).toLowerCase();
         if (hasIvaString === 'true' || hasIvaString === 'si') {
-            ivaTotal += itemTotal * IVA_RATE;
+            subtotal += itemTotal / (1 + IVA_RATE);
+            ivaTotal += (itemTotal / (1 + IVA_RATE)) * IVA_RATE;
+        } else {
+            subtotal += itemTotal;
         }
     });
 
@@ -152,6 +157,15 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
         ivaTotal: ivaTotal.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }),
         total: total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }),
     }
+  }
+  
+  const calculateItemSubtotal = (item: any) => {
+    const valorUnitario = parseFloat(item['VALOR UNITARIO']) || 0;
+    const hasIvaString = String(item.hasIva).toLowerCase();
+     if (hasIvaString === 'true' || hasIvaString === 'si') {
+        return valorUnitario / (1 + IVA_RATE);
+    }
+    return valorUnitario;
   }
 
   const totals = calculateTotals();
@@ -178,7 +192,7 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
                 </div>
                 <Button id="download-pdf-btn" onClick={handleDownloadPdf}>
                     <Download className="mr-2 h-4 w-4" />
-                    Descargar PDF
+                    Visualizar PDF
                 </Button>
             </div>
         </div>
@@ -191,7 +205,7 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
                 <TableHead>Descripción</TableHead>
                 <TableHead className="text-center">Cantidad</TableHead>
                 <TableHead className="text-right">Valor Unitario</TableHead>
-                <TableHead className="text-center">Incluye IVA</TableHead>
+                <TableHead className="text-right">Subtotal</TableHead>
                 <TableHead className="text-right">Total</TableHead>
               </TableRow>
             </TableHeader>
@@ -199,16 +213,15 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
               {items.map((item, index) => {
                 const valorUnitario = parseFloat(item['VALOR UNITARIO']) || 0;
                 const quantity = parseInt(item.quantity) || 1;
+                const itemSubtotal = calculateItemSubtotal(item);
                 const total = quantity * valorUnitario;
-                const hasIvaString = String(item.hasIva).toLowerCase();
-                const ivaDisplay = (hasIvaString === 'true' || hasIvaString === 'si') ? "Sí" : "No";
                 
                 return (
                 <TableRow key={index}>
                   <TableCell className="font-medium">{item['DESCRIPCION']}</TableCell>
                   <TableCell className="text-center">{quantity}</TableCell>
                   <TableCell className="text-right">{valorUnitario.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</TableCell>
-                  <TableCell className="text-center">{ivaDisplay}</TableCell>
+                  <TableCell className="text-right">{itemSubtotal.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</TableCell>
                   <TableCell className="text-right">{total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</TableCell>
                 </TableRow>
               )})}
@@ -233,5 +246,3 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
     </Card>
   );
 }
-
-    
