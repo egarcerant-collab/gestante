@@ -89,17 +89,19 @@ export default function Home() {
         }
 
         if (jsonData) {
-            // Enrich data with AI
-            const enrichedData = await Promise.all(
-                jsonData.map(async (item) => {
-                    const description = item['DESCRIPCION'] || '';
-                    if (!description) {
-                        return { ...item, hasIva: false };
-                    }
+            // Enrich data with AI, processing items sequentially to avoid rate limits.
+            const enrichedData = [];
+            for (const item of jsonData) {
+                const description = item['DESCRIPCION'] || '';
+                let hasIva = false;
+                if (description) {
+                    // Small delay to respect API rate limits.
+                    await new Promise(resolve => setTimeout(resolve, 200)); 
                     const result = await checkIva(description);
-                    return { ...item, hasIva: result.hasIva };
-                })
-            );
+                    hasIva = result.hasIva;
+                }
+                enrichedData.push({ ...item, hasIva });
+            }
             setData(enrichedData);
         } else {
             setData([]);
