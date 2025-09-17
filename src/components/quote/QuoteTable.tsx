@@ -47,7 +47,7 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
     const downloadButton = input.querySelector('#download-pdf-btn') as HTMLElement;
     if(downloadButton) downloadButton.style.display = 'none';
 
-    html2canvas(input, { scale: 2 }).then((canvas) => {
+    html2canvas(input, { scale: 2, useCORS: true }).then((canvas) => {
         // Show the button again after screenshot
         if(downloadButton) downloadButton.style.display = 'flex';
         
@@ -123,7 +123,7 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
             <div className="flex flex-col items-end gap-4">
                  <div className="text-right text-sm text-muted-foreground">
                     <div className="flex items-center justify-end gap-3 mb-2">
-                        <img src="/logo.png" alt="Logo" className="w-12 h-12 rounded-full" />
+                        <img src="/logo.png" alt="Logo" className="w-12 h-12 rounded-full" crossOrigin="anonymous"/>
                         <p className="font-bold text-lg text-foreground">DISTRIBUIDORA MILADYS SOLANO</p>
                     </div>
                     <p>NIT: 1122813197-5</p>
