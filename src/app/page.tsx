@@ -96,7 +96,7 @@ export default function Home() {
                 let hasIva = false;
                 if (description) {
                     // Increased delay to respect API rate limits.
-                    await new Promise(resolve => setTimeout(resolve, 1000)); 
+                    await new Promise(resolve => setTimeout(resolve, 6000)); 
                     const result = await checkIva(description);
                     hasIva = result.hasIva;
                 }
