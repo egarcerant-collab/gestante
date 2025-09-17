@@ -24,12 +24,16 @@ const ivaFlow = ai.defineFlow(
     const prompt = `
       Eres un experto en impuestos de Colombia.
       Basado en la siguiente lista de descripciones de productos, determina para cada uno si está sujeto a IVA en Colombia.
-      La tarifa general de IVA es del 19%. Algunos productos de la canasta familiar están exentos.
-      Responde únicamente con un objeto JSON que contenga una clave "results", cuyo valor sea un array de objetos. Cada objeto en el array debe tener la clave "hasIva" y un valor booleano.
-      El array de respuesta debe tener el mismo orden y número de elementos que la lista de productos de entrada.
+      La tarifa general de IVA es del 19%. Productos de la canasta familiar como cuadernos, lápices y algunos alimentos están exentos.
+      Debes responder con un objeto JSON. El objeto debe tener una única clave "results", cuyo valor sea un array de objetos.
+      Cada objeto en el array debe tener la clave "hasIva" y un valor booleano.
+      Es crucial que el array de respuesta tenga exactamente el mismo número de elementos que la lista de productos de entrada. El orden debe ser el mismo.
+
+      Ejemplo de entrada: ["Cuaderno", "Computador"]
+      Ejemplo de respuesta: {"results": [{"hasIva": false}, {"hasIva": true}]}
 
       Descripciones de productos:
-      ${productDescriptions.map((d, i) => `${i + 1}. ${d}`).join('\n')}
+      ${JSON.stringify(productDescriptions)}
     `;
 
     const { output } = await ai.generate({
