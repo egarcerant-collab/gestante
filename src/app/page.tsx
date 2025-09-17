@@ -10,39 +10,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 import { QuoteTable } from "@/components/quote/QuoteTable";
 
-// Simplified CSV parser
-// WARNING: This is a simplified CSV parser and may not handle all edge cases,
-// such as commas within quoted fields. For a robust library, consider alternatives.
-function parseCsv(csvString: string): { data: any[], error: string | null } {
-  try {
-    const lines = csvString.trim().split(/\r\n|\n/);
-    if (lines.length < 2) {
-      return { data: [], error: "CSV must have a header row and at least one data row." };
-    }
-    
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-    
-    const jsonData: any[] = [];
-    for (let i = 1; i < lines.length; i++) {
-      if (!lines[i]) continue;
-
-      const values = lines[i].split(',');
-      
-      const entry: any = {};
-      for (let j = 0; j < headers.length; j++) {
-        const header = headers[j];
-        const value = values[j] ? values[j].trim().replace(/"/g, '') : '';
-        entry[header] = value;
-      }
-      jsonData.push(entry);
-    }
-    
-    return { data: jsonData, error: null };
-  } catch (err) {
-    console.error("Error parsing CSV:", err);
-    return { data: [], error: "An unexpected error occurred while parsing the file." };
-  }
-}
 
 export default function Home() {
   const [data, setData] = useState<any[] | null>(null);
@@ -60,30 +27,26 @@ export default function Home() {
       try {
         const fileContent = e.target?.result;
         let jsonData: any[] | null = null;
-        let parseError: string | null = null;
-
+        
         if (file.type === "application/json" || file.name.endsWith('.json')) {
             const json = JSON.parse(fileContent as string);
             if (!Array.isArray(json)) {
                 throw new Error("JSON file must contain an array of objects.");
             }
             jsonData = json;
-        } else if (file.type === "text/csv" || file.name.endsWith('.csv')) {
-            const { data, error } = parseCsv(fileContent as string);
-            jsonData = data;
-            parseError = error;
         } else if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
             const workbook = XLSX.read(fileContent, { type: 'array' });
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
             const json = XLSX.utils.sheet_to_json<any>(worksheet);
             jsonData = json;
+        } else if (file.type === "text/csv" || file.name.endsWith('.csv')) {
+            const workbook = XLSX.read(fileContent as string, { type: 'string' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            jsonData = XLSX.utils.sheet_to_json<any>(worksheet);
         } else {
-            throw new Error("Unsupported file type.");
-        }
-        
-        if (parseError) {
-          throw new Error(parseError);
+            throw new Error("Unsupported file type. Please use CSV, XLS, XLSX, or JSON.");
         }
 
         if (jsonData) {
@@ -137,7 +100,7 @@ export default function Home() {
           
           {!isLoading && data && (
             <div className="animate-in fade-in-50 duration-500 space-y-6">
-               <div className="max-w-4xl mx-auto">
+               <div className="max-w-screen-2xl mx-auto">
                 <h2 className="text-3xl font-bold tracking-tight text-center mb-4">Cotización Generada</h2>
                 <QuoteTable items={data} />
               </div>

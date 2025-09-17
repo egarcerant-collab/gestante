@@ -4,11 +4,9 @@ import { QuoteTable } from "@/components/quote/QuoteTable";
 export default function QuotePage() {
   
   const sampleItems = [
-    { "DESCRIPCION": "Cuaderno Doble Línea", "VALOR UNITARIO": 7000, hasIva: false, quantity: 5 },
-    { "DESCRIPCION": "Caja de Lápices de Colores x12", "VALOR UNITARIO": 15000, hasIva: true, quantity: 2 },
-    { "DESCRIPCION": "Resma de Papel Carta", "VALOR UNITARIO": 25000, hasIva: true, quantity: 10 },
-    { "DESCRIPCION": "Agenda Ejecutiva 2024", "VALOR UNITARIO": 45000, hasIva: true, quantity: 1 },
-    { "DESCRIPCION": "Juego Geométrico", "VALOR UNITARIO": 12000, hasIva: false, quantity: 3 },
+    { "#": 1, "CÓDIGO": "MRCDR", "DESCRIPCION": "MARCADOR BORRABLE PUNTA CUADRADA AZUL RECARGABLE", "U. MEDIDA": 94, "CANTIDAD": 1, "PRECIO U.": 3535, "IVA": 19, "DCTO.": 0, "TOTAL": 3535},
+    { "#": 2, "CÓDIGO": "LAPCOL", "DESCRIPCION": "Caja de Lápices de Colores x12", "U. MEDIDA": 1, "CANTIDAD": 2, "PRECIO U.": 15000, "IVA": 19, "DCTO.": 0.05, "TOTAL": 28500 },
+    { "#": 3, "CÓDIGO": "RESPAP", "DESCRIPCION": "Resma de Papel Carta", "U. MEDIDA": 1, "CANTIDAD": 10, "PRECIO U.": 25000, "IVA": 19, "DCTO.": 0.1, "TOTAL": 225000 },
   ];
 
   return (
