@@ -89,7 +89,6 @@ export default function Home() {
         }
 
         if (jsonData && jsonData.length > 0) {
-            // Enrich data with AI, processing all items in a single batch.
             const descriptions = jsonData.map(item => item['DESCRIPCION'] || '');
             const ivaResults = await checkIva(descriptions);
             
