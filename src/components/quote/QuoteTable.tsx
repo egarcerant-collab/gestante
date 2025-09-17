@@ -1,6 +1,9 @@
 
 "use client";
 
+import { useRef } from "react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import {
   Table,
   TableBody,
@@ -11,6 +14,8 @@ import {
   TableFooter,
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 
 const IVA_RATE = 0.19; // 19% para Colombia
 
@@ -19,6 +24,8 @@ interface QuoteTableProps {
 }
 
 export function QuoteTable({ items = [] }: QuoteTableProps) {
+  const quoteRef = useRef<HTMLDivElement>(null);
+  
   if (items.length === 0) {
     return (
         <Card>
@@ -31,6 +38,37 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
         </Card>
     )
   }
+
+  const handleDownloadPdf = () => {
+    const input = quoteRef.current;
+    if (!input) return;
+
+    // Hide the download button before taking the screenshot
+    const downloadButton = input.querySelector('#download-pdf-btn') as HTMLElement;
+    if(downloadButton) downloadButton.style.display = 'none';
+
+    html2canvas(input, { scale: 2 }).then((canvas) => {
+        // Show the button again after screenshot
+        if(downloadButton) downloadButton.style.display = 'flex';
+        
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        const ratio = canvasWidth / canvasHeight;
+        const width = pdfWidth - 20; // with margin
+        const height = width / ratio;
+        
+        let position = 10;
+        
+        pdf.addImage(imgData, 'PNG', 10, position, width, height);
+
+        const date = new Date().toLocaleDateString('es-CO');
+        pdf.save(`cotizacion-${date}.pdf`);
+    });
+};
 
   const calculateTotals = () => {
     let subtotal = 0;
@@ -73,7 +111,7 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
   }
 
   return (
-    <Card>
+    <Card ref={quoteRef}>
       <CardHeader>
         <div className="flex justify-between items-start">
             <div>
@@ -82,11 +120,20 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
                 A continuación se presenta el desglose de los ítems, cantidades, precios e impuestos.
                 </CardDescription>
             </div>
-            <div className="text-right text-sm text-muted-foreground">
-                <p className="font-bold text-foreground">DISTRIBUIDORA MILADYS SOLANO</p>
-                <p>NIT: 1122813197-5</p>
-                <p>CR 24 CL 13 145, Becerril, Cesar</p>
-                <p>Celular: 3167533999</p>
+            <div className="flex flex-col items-end gap-4">
+                 <div className="text-right text-sm text-muted-foreground">
+                    <div className="flex items-center justify-end gap-3 mb-2">
+                        <img src="/logo.png" alt="Logo" className="w-12 h-12 rounded-full" />
+                        <p className="font-bold text-lg text-foreground">DISTRIBUIDORA MILADYS SOLANO</p>
+                    </div>
+                    <p>NIT: 1122813197-5</p>
+                    <p>CR 24 CL 13 145, Becerril, Cesar</p>
+                    <p>Celular: 3167533999</p>
+                </div>
+                <Button id="download-pdf-btn" onClick={handleDownloadPdf}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Descargar PDF
+                </Button>
             </div>
         </div>
       </CardHeader>
