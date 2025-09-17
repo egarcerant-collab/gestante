@@ -60,24 +60,8 @@ export function QuoteTable({ items }: QuoteTableProps) {
         validUntil: new Date(new Date().setDate(new Date().getDate() + 15)),
     });
     
-  const handleDownloadPdf = async () => {
+  const handleDownloadPdf = () => {
     const doc = new jsPDF();
-
-    // Ensure the image is loaded before adding it to the PDF
-    const loadImage = (src: string): Promise<HTMLImageElement> => {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.src = src;
-            img.onload = () => resolve(img);
-            img.onerror = (err) => {
-                console.error("Error loading image for PDF.", err);
-                reject(err);
-            };
-        });
-    };
-
-    const logoImage = await loadImage(logoBase64);
-
     const tableData = items.map(item => {
         const valorUnitario = parseFloat(item['PRECIO U.']) || 0;
         const quantity = parseInt(item.CANTIDAD) || 1;
@@ -105,7 +89,7 @@ export function QuoteTable({ items }: QuoteTableProps) {
         startY: 95,
         didDrawPage: function (data: any) {
             // Header
-            doc.addImage(logoImage, 'PNG', data.settings.margin.left, 15, 20, 20);
+            doc.addImage(logoBase64, 'PNG', data.settings.margin.left, 15, 20, 20);
             doc.setFontSize(16);
             doc.setTextColor(40);
             doc.text('DISTRIBUIDORA MILADYS SOLANO', data.settings.margin.left + 25, 22);
@@ -238,7 +222,7 @@ export function QuoteTable({ items }: QuoteTableProps) {
             <div className="flex flex-col items-end gap-4">
                  <div className="text-right text-sm text-muted-foreground">
                     <div className="flex items-center justify-end gap-3 mb-2">
-                        <img src="/logo.png" alt="Logo" className="w-12 h-12 rounded-full"/>
+                        <img src={logoBase64} alt="Logo" className="w-12 h-12 rounded-full"/>
                         <p className="font-bold text-lg text-foreground">DISTRIBUIDORA MILADYS SOLANO</p>
                     </div>
                     <p>NIT: 1122813197-5</p>
