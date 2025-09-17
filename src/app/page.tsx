@@ -9,10 +9,11 @@ import { LoadingDashboard } from "@/components/dashboard/LoadingDashboard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 import { QuoteTable } from "@/components/quote/QuoteTable";
+import { checkIva } from "@/ai/flows/iva-flow";
 
 // Simplified CSV parser
 // WARNING: This is a simplified CSV parser and may not handle all edge cases,
-// such as commas within quoted fields. For production use, a more robust library is recommended.
+// such as commas within quoted fields. For a robust library, consider alternatives.
 function parseCsv(csvString: string): { data: any[], error: string | null } {
   try {
     const lines = csvString.trim().split(/\r\n|\n/);
@@ -44,34 +45,20 @@ function parseCsv(csvString: string): { data: any[], error: string | null } {
   }
 }
 
-function convertJsonToCsv(jsonData: any[]): string {
-    if (jsonData.length === 0) {
-        return "";
-    }
-    const headers = Object.keys(jsonData[0]);
-    const csvRows = [headers.join(',')];
-    for (const row of jsonData) {
-        const values = headers.map(header => {
-            const escaped = (''+row[header]).replace(/"/g, '\\"');
-            return `"${escaped}"`;
-        });
-        csvRows.push(values.join(','));
-    }
-    return csvRows.join('\n');
-}
 
 export default function Home() {
   const [data, setData] = useState<any[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleFileParse = (file: File) => {
+  const handleFileParse = async (file: File) => {
     setIsLoading(true);
     setError(null);
     setData(null);
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    
+    reader.onload = async (e) => {
       try {
         const fileContent = e.target?.result;
         let jsonData: any[] | null = null;
@@ -101,10 +88,26 @@ export default function Home() {
           throw new Error(parseError);
         }
 
-        setData(jsonData);
+        if (jsonData) {
+            // Enrich data with AI
+            const enrichedData = await Promise.all(
+                jsonData.map(async (item) => {
+                    const description = item['DESCRIPCION'] || '';
+                    if (!description) {
+                        return { ...item, hasIva: false };
+                    }
+                    const result = await checkIva(description);
+                    return { ...item, hasIva: result.hasIva };
+                })
+            );
+            setData(enrichedData);
+        } else {
+            setData([]);
+        }
+
         setError(null);
       } catch (err: any) {
-        console.error("Error parsing file:", err);
+        console.error("Error processing file:", err);
         setError(err.message || "Failed to parse the file. Please ensure it's a valid CSV, XLS, XLSX, or JSON file.");
         setData(null);
       } finally {
