@@ -3,7 +3,7 @@
 
 import { useRef } from "react";
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+import "jspdf-autotable";
 import {
   Table,
   TableBody,
@@ -40,34 +40,93 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
   }
 
   const handleDownloadPdf = () => {
-    const input = quoteRef.current;
-    if (!input) return;
+    const doc = new jsPDF();
+    const tableData = items.map(item => {
+        const valorUnitario = parseFloat(item['VALOR UNITARIO']) || 0;
+        const quantity = parseInt(item.quantity) || 1;
+        const total = quantity * valorUnitario;
+        const hasIvaString = String(item.hasIva).toLowerCase();
+        const ivaDisplay = (hasIvaString === 'true' || hasIvaString === 'si') ? "Sí" : "No";
 
-    // Hide the download button before taking the screenshot
-    const downloadButton = input.querySelector('#download-pdf-btn') as HTMLElement;
-    if(downloadButton) downloadButton.style.display = 'none';
+        return [
+            item['DESCRIPCION'],
+            quantity,
+            valorUnitario.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }),
+            ivaDisplay,
+            total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })
+        ];
+    });
 
-    html2canvas(input, { scale: 2, useCORS: true }).then((canvas) => {
-        // Show the button again after screenshot
-        if(downloadButton) downloadButton.style.display = 'flex';
-        
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        const canvasWidth = canvas.width;
-        const canvasHeight = canvas.height;
-        const ratio = canvasWidth / canvasHeight;
-        const width = pdfWidth - 20; // with margin
-        const height = width / ratio;
-        
-        let position = 10;
-        
-        pdf.addImage(imgData, 'PNG', 10, position, width, height);
+    const totals = calculateTotals();
+    
+    // Convert logo to base64
+    const img = new Image();
+    img.src = '/logo.png';
+    img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx!.drawImage(img, 0, 0);
+        const dataURL = canvas.toDataURL('image/png');
+
+        (doc as any).autoTable({
+            head: [['Descripción', 'Cantidad', 'Valor Unitario', 'Incluye IVA', 'Total']],
+            body: tableData,
+            startY: 40,
+            didDrawPage: function (data: any) {
+                // Header
+                doc.addImage(dataURL, 'PNG', data.settings.margin.left, 15, 20, 20);
+                doc.setFontSize(16);
+                doc.setTextColor(40);
+                doc.text('DISTRIBUIDORA MILADYS SOLANO', data.settings.margin.left + 25, 22);
+                doc.setFontSize(10);
+                doc.text('NIT: 1122813197-5', data.settings.margin.left + 25, 28);
+                doc.text('CR 24 CL 13 145, Becerril, Cesar', data.settings.margin.left + 25, 32);
+                doc.text('Celular: 3167533999', data.settings.margin.left + 25, 36);
+                
+                doc.setFontSize(18);
+                doc.text('Cotización', data.settings.margin.left + 150, 22);
+
+            },
+            foot: [
+                [{ content: 'Subtotal', colSpan: 4, styles: { halign: 'right' } }, { content: totals.subtotal, styles: { halign: 'right' } }],
+                [{ content: 'IVA (19%)', colSpan: 4, styles: { halign: 'right' } }, { content: totals.ivaTotal, styles: { halign: 'right' } }],
+                [{ content: 'Total a Pagar', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fontSize: 12 } }, { content: totals.total, styles: { halign: 'right', fontStyle: 'bold', fontSize: 12 } }]
+            ],
+            footStyles: {
+                fillColor: [239, 239, 239]
+            },
+            headStyles: {
+                fillColor: [37, 52, 79],
+                textColor: [255, 255, 255]
+            },
+            styles: {
+                cellPadding: 2,
+                fontSize: 10,
+            },
+            columnStyles: {
+                0: { cellWidth: 'auto' },
+                1: { cellWidth: 20, halign: 'center' },
+                2: { cellWidth: 30, halign: 'right' },
+                3: { cellWidth: 25, halign: 'center' },
+                4: { cellWidth: 30, halign: 'right' }
+            }
+        });
 
         const date = new Date().toLocaleDateString('es-CO');
-        pdf.save(`cotizacion-${date}.pdf`);
-    });
+        doc.save(`cotizacion-${date}.pdf`);
+    };
+    img.onerror = () => {
+        console.error("Error loading logo for PDF.");
+        // Fallback if logo fails to load
+        (doc as any).autoTable({
+            head: [['Descripción', 'Cantidad', 'Valor Unitario', 'Incluye IVA', 'Total']],
+            body: tableData,
+        });
+        const date = new Date().toLocaleDateString('es-CO');
+        doc.save(`cotizacion-${date}.pdf`);
+    }
 };
 
   const calculateTotals = () => {
@@ -80,7 +139,6 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
         const itemTotal = quantity * valorUnitario;
         subtotal += itemTotal;
         
-        // Check for a boolean-like value for IVA. Handles strings "true", "si" and booleans.
         const hasIvaString = String(item.hasIva).toLowerCase();
         if (hasIvaString === 'true' || hasIvaString === 'si') {
             ivaTotal += itemTotal * IVA_RATE;
@@ -98,18 +156,6 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
 
   const totals = calculateTotals();
 
-  const getDisplayValue = (item: any, key: string) => {
-    const value = item[key];
-    if (key === 'VALOR UNITARIO') {
-        return (parseFloat(value) || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
-    }
-    if (key.toLowerCase().includes('iva')) {
-         const hasIvaString = String(value).toLowerCase();
-        return (hasIvaString === 'true' || hasIvaString === 'si') ? "Sí" : "No";
-    }
-    return value;
-  }
-
   return (
     <Card ref={quoteRef}>
       <CardHeader>
@@ -123,7 +169,7 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
             <div className="flex flex-col items-end gap-4">
                  <div className="text-right text-sm text-muted-foreground">
                     <div className="flex items-center justify-end gap-3 mb-2">
-                        <img src="/logo.png" alt="Logo" className="w-12 h-12 rounded-full" crossOrigin="anonymous"/>
+                        <img src="/logo.png" alt="Logo" className="w-12 h-12 rounded-full"/>
                         <p className="font-bold text-lg text-foreground">DISTRIBUIDORA MILADYS SOLANO</p>
                     </div>
                     <p>NIT: 1122813197-5</p>
@@ -187,3 +233,5 @@ export function QuoteTable({ items = [] }: QuoteTableProps) {
     </Card>
   );
 }
+
+    
