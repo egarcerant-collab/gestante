@@ -63,7 +63,7 @@ export function QuoteTable({ items }: QuoteTableProps) {
   const handleDownloadPdf = () => {
     const doc = new jsPDF();
     const tableData = items.map(item => {
-        const valorUnitario = parseFloat(item['PRECIO U.']) || 0;
+        const valorUnitario = parseFloat(item['valor']) || 0;
         const quantity = parseInt(item.CANTIDAD) || 1;
         const iva = (parseFloat(item.IVA) || 0) / 100;
         const dcto = parseFloat(item.DCTO) || 0;
@@ -185,7 +185,7 @@ export function QuoteTable({ items }: QuoteTableProps) {
     let ivaTotal = 0;
 
     items.forEach(item => {
-        const valorUnitario = parseFloat(item['PRECIO U.']) || 0;
+        const valorUnitario = parseFloat(item['valor']) || 0;
         const quantity = parseInt(item.CANTIDAD) || 1;
         const ivaRate = (parseFloat(item.IVA) || 0) / 100;
         const dctoRate = parseFloat(item.DCTO) || 0;
@@ -350,7 +350,7 @@ export function QuoteTable({ items }: QuoteTableProps) {
             </TableHeader>
             <TableBody>
               {items.map((item, index) => {
-                const valorUnitario = parseFloat(item['PRECIO U.']) || 0;
+                const valorUnitario = parseFloat(item['valor']) || 0;
                 const quantity = parseInt(item.CANTIDAD) || 1;
                 const dcto = parseFloat(item.DCTO) || 0;
                 const total = (quantity * valorUnitario) * (1-dcto);
