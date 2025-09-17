@@ -1,4 +1,4 @@
-import { HeartPulse } from 'lucide-react';
+import { Calculator } from 'lucide-react';
 import Link from 'next/link';
 
 export function Header() {
@@ -7,9 +7,9 @@ export function Header() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
-            <HeartPulse className="h-7 w-7 text-primary" />
+            <Calculator className="h-7 w-7 text-primary" />
             <h1 className="ml-3 text-2xl font-bold tracking-tight text-foreground">
-              <Link href="/">PregnaData Insights</Link>
+              <Link href="/">Cotizador</Link>
             </h1>
           </div>
           <nav>

@@ -13,9 +13,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 // Datos de ejemplo
 const sampleItems = [
-  { description: "Producto A", quantity: 2, price: 25000, hasIva: true },
-  { description: "Producto B", quantity: 1, price: 100000, hasIva: true },
-  { description: "Producto C", quantity: 5, price: 10000, hasIva: false },
+  { "DESCRIPCION": "Servicio de Consultoría", "VALOR UNITARIO": 150000, hasIva: true, quantity: 1 },
+  { "DESCRIPCION": "Licencia de Software (Anual)", "VALOR UNITARIO": 300000, hasIva: true, quantity: 2 },
+  { "DESCRIPCION": "Soporte Técnico (mensual)", "VALOR UNITARIO": 50000, hasIva: false, quantity: 12 },
 ];
 
 const IVA_RATE = 0.19; // 19% para Colombia
@@ -27,7 +27,7 @@ export function QuoteTable() {
     let ivaTotal = 0;
 
     sampleItems.forEach(item => {
-        const itemTotal = item.quantity * item.price;
+        const itemTotal = item.quantity * item['VALOR UNITARIO'];
         subtotal += itemTotal;
         if (item.hasIva) {
             ivaTotal += itemTotal * IVA_RATE;
@@ -60,19 +60,19 @@ export function QuoteTable() {
               <TableRow>
                 <TableHead>Descripción</TableHead>
                 <TableHead className="text-center">Cantidad</TableHead>
-                <TableHead className="text-right">Precio Unitario</TableHead>
+                <TableHead className="text-right">Valor Unitario</TableHead>
                 <TableHead className="text-center">Incluye IVA</TableHead>
                 <TableHead className="text-right">Total</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sampleItems.map((item, index) => {
-                const total = item.quantity * item.price;
+                const total = item.quantity * item['VALOR UNITARIO'];
                 return (
                 <TableRow key={index}>
-                  <TableCell className="font-medium">{item.description}</TableCell>
+                  <TableCell className="font-medium">{item['DESCRIPCION']}</TableCell>
                   <TableCell className="text-center">{item.quantity}</TableCell>
-                  <TableCell className="text-right">{item.price.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</TableCell>
+                  <TableCell className="text-right">{item['VALOR UNITARIO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</TableCell>
                   <TableCell className="text-center">{item.hasIva ? "Sí" : "No"}</TableCell>
                   <TableCell className="text-right">{total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</TableCell>
                 </TableRow>
