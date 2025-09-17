@@ -41,8 +41,8 @@ export function FileUpload({ onFileParse }: FileUploadProps) {
     } else {
       toast({
         variant: "destructive",
-        title: "Invalid File Type",
-        description: "Please upload a valid CSV, XLS, XLSX, or JSON file.",
+        title: "Tipo de archivo no válido",
+        description: "Por favor, sube un archivo CSV, XLS, XLSX, o JSON.",
       });
     }
   }
@@ -75,9 +75,9 @@ export function FileUpload({ onFileParse }: FileUploadProps) {
   return (
     <Card className="animate-in fade-in-50 duration-500">
       <CardHeader>
-        <CardTitle>Upload Your Data</CardTitle>
+        <CardTitle>Sube tu archivo de datos</CardTitle>
         <CardDescription>
-          Import a CSV, XLS, XLSX, or JSON file with patient data to begin analysis.
+          Importa un archivo CSV, XLS, XLSX, o JSON para generar una cotización.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -89,9 +89,9 @@ export function FileUpload({ onFileParse }: FileUploadProps) {
         >
           <UploadCloud className="w-12 h-12 text-muted-foreground" />
           <p className="mt-4 text-sm text-muted-foreground">
-            <span className="font-semibold text-primary">Click to upload</span> or drag and drop
+            <span className="font-semibold text-primary">Haz clic para subir</span> o arrastra y suelta
           </p>
-          <p className="text-xs text-muted-foreground">CSV, XLS, XLSX, or JSON files</p>
+          <p className="text-xs text-muted-foreground">Archivos CSV, XLS, XLSX, o JSON</p>
           <Input
             ref={fileInputRef}
             type="file"
@@ -113,7 +113,7 @@ export function FileUpload({ onFileParse }: FileUploadProps) {
           </div>
         )}
         <Button onClick={handleAnalyzeClick} disabled={!file || isLoading} className="w-full">
-          {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Analyzing...</> : "Analyze Data"}
+          {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generando...</> : "Generar Cotización"}
         </Button>
       </CardContent>
     </Card>

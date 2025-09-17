@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -11,25 +12,39 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-// Datos de ejemplo
-const sampleItems = [
-  { "DESCRIPCION": "Servicio de Consultoría", "VALOR UNITARIO": 150000, hasIva: true, quantity: 1 },
-  { "DESCRIPCION": "Licencia de Software (Anual)", "VALOR UNITARIO": 300000, hasIva: true, quantity: 2 },
-  { "DESCRIPCION": "Soporte Técnico (mensual)", "VALOR UNITARIO": 50000, hasIva: false, quantity: 12 },
-];
-
 const IVA_RATE = 0.19; // 19% para Colombia
 
-export function QuoteTable() {
+interface QuoteTableProps {
+    items: any[];
+}
+
+export function QuoteTable({ items = [] }: QuoteTableProps) {
+  if (items.length === 0) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Detalles de la Cotización</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p>No hay ítems para mostrar.</p>
+            </CardContent>
+        </Card>
+    )
+  }
 
   const calculateTotals = () => {
     let subtotal = 0;
     let ivaTotal = 0;
 
-    sampleItems.forEach(item => {
-        const itemTotal = item.quantity * item['VALOR UNITARIO'];
+    items.forEach(item => {
+        const valorUnitario = parseFloat(item['VALOR UNITARIO']) || 0;
+        const quantity = parseInt(item.quantity) || 1;
+        const itemTotal = quantity * valorUnitario;
         subtotal += itemTotal;
-        if (item.hasIva) {
+        
+        // Check for a boolean-like value for IVA. Handles strings "true", "si" and booleans.
+        const hasIvaString = String(item.hasIva).toLowerCase();
+        if (hasIvaString === 'true' || hasIvaString === 'si') {
             ivaTotal += itemTotal * IVA_RATE;
         }
     });
@@ -44,6 +59,18 @@ export function QuoteTable() {
   }
 
   const totals = calculateTotals();
+
+  const getDisplayValue = (item: any, key: string) => {
+    const value = item[key];
+    if (key === 'VALOR UNITARIO') {
+        return (parseFloat(value) || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
+    }
+    if (key.toLowerCase().includes('iva')) {
+         const hasIvaString = String(value).toLowerCase();
+        return (hasIvaString === 'true' || hasIvaString === 'si') ? "Sí" : "No";
+    }
+    return value;
+  }
 
   return (
     <Card>
@@ -66,14 +93,19 @@ export function QuoteTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sampleItems.map((item, index) => {
-                const total = item.quantity * item['VALOR UNITARIO'];
+              {items.map((item, index) => {
+                const valorUnitario = parseFloat(item['VALOR UNITARIO']) || 0;
+                const quantity = parseInt(item.quantity) || 1;
+                const total = quantity * valorUnitario;
+                const hasIvaString = String(item.hasIva).toLowerCase();
+                const ivaDisplay = (hasIvaString === 'true' || hasIvaString === 'si') ? "Sí" : "No";
+                
                 return (
                 <TableRow key={index}>
                   <TableCell className="font-medium">{item['DESCRIPCION']}</TableCell>
-                  <TableCell className="text-center">{item.quantity}</TableCell>
-                  <TableCell className="text-right">{item['VALOR UNITARIO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</TableCell>
-                  <TableCell className="text-center">{item.hasIva ? "Sí" : "No"}</TableCell>
+                  <TableCell className="text-center">{quantity}</TableCell>
+                  <TableCell className="text-right">{valorUnitario.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</TableCell>
+                  <TableCell className="text-center">{ivaDisplay}</TableCell>
                   <TableCell className="text-right">{total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</TableCell>
                 </TableRow>
               )})}
