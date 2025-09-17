@@ -85,7 +85,14 @@ export default function Home() {
         let parseError: string | null = null;
         let generatedCsvString: string | null = null;
 
-        if (file.type === "text/csv" || file.name.endsWith('.csv')) {
+        if (file.type === "application/json" || file.name.endsWith('.json')) {
+            const json = JSON.parse(fileContent as string);
+            if (!Array.isArray(json)) {
+                throw new Error("JSON file must contain an array of objects.");
+            }
+            jsonData = json;
+            generatedCsvString = convertJsonToCsv(json);
+        } else if (file.type === "text/csv" || file.name.endsWith('.csv')) {
             const { data, error } = parseCsv(fileContent as string);
             jsonData = data;
             parseError = error;
@@ -110,7 +117,7 @@ export default function Home() {
         setError(null);
       } catch (err: any) {
         console.error("Error parsing file:", err);
-        setError(err.message || "Failed to parse the file. Please ensure it's a valid CSV, XLS, or XLSX file.");
+        setError(err.message || "Failed to parse the file. Please ensure it's a valid CSV, XLS, XLSX, or JSON file.");
         setData(null);
         setCsvString(null);
       } finally {
@@ -122,7 +129,7 @@ export default function Home() {
       setIsLoading(false);
     }
     
-    if (file.type === "text/csv" || file.name.endsWith('.csv')) {
+    if (file.type === "text/csv" || file.name.endsWith('.csv') || file.type === "application/json" || file.name.endsWith('.json')) {
         reader.readAsText(file, 'UTF-8');
     } else {
         reader.readAsArrayBuffer(file);

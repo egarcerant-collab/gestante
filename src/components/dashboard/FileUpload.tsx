@@ -15,9 +15,10 @@ interface FileUploadProps {
 const ALLOWED_FILE_TYPES = [
     "text/csv", 
     "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/json"
 ];
-const ALLOWED_EXTENSIONS = ['.csv', '.xls', '.xlsx'];
+const ALLOWED_EXTENSIONS = ['.csv', '.xls', '.xlsx', '.json'];
 
 
 export function FileUpload({ onFileParse }: FileUploadProps) {
@@ -41,7 +42,7 @@ export function FileUpload({ onFileParse }: FileUploadProps) {
       toast({
         variant: "destructive",
         title: "Invalid File Type",
-        description: "Please upload a valid CSV, XLS, or XLSX file.",
+        description: "Please upload a valid CSV, XLS, XLSX, or JSON file.",
       });
     }
   }
@@ -76,7 +77,7 @@ export function FileUpload({ onFileParse }: FileUploadProps) {
       <CardHeader>
         <CardTitle>Upload Your Data</CardTitle>
         <CardDescription>
-          Import a CSV, XLS, or XLSX file with patient data to begin analysis.
+          Import a CSV, XLS, XLSX, or JSON file with patient data to begin analysis.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -90,13 +91,13 @@ export function FileUpload({ onFileParse }: FileUploadProps) {
           <p className="mt-4 text-sm text-muted-foreground">
             <span className="font-semibold text-primary">Click to upload</span> or drag and drop
           </p>
-          <p className="text-xs text-muted-foreground">CSV, XLS, or XLSX files</p>
+          <p className="text-xs text-muted-foreground">CSV, XLS, XLSX, or JSON files</p>
           <Input
             ref={fileInputRef}
             type="file"
             className="hidden"
             onChange={handleFileChange}
-            accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/json,.json"
             disabled={isLoading}
           />
         </div>
