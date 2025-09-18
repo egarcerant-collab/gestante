@@ -79,7 +79,7 @@ export default function Home() {
         const descripcion = map.descripcion ?? map.descripcion_ ?? map['descripción'] ?? map.detalle ?? map.producto ?? "";
         const unidad = map.unidad ?? map.u_medida ?? map.um ?? "UND";
         const cantidad = Number(String(map.cantidad ?? map.cant ?? 1).toString().replace(',', '.')) || 1;
-        const precio = Number(String(map.valor_unitario ?? map.valorunitario ?? map.precio_unitario ?? map.preciounitario ?? map.precio ?? 0).toString().replace(',', '.')) || 0;
+        const precio = Number(String(map.valor_unitario ?? map.valorunitario ?? map.precio_unitario ?? map.preciounitario ?? map.precio ?? map.valor ?? 0).toString().replace(',', '.')) || 0;
         const iva = Number(String(map.iva ?? '').toString().replace(',', '.'));
         const dcto = Number(String(map.descuento ?? map.dcto ?? 0).toString().replace(',', '.')) || 0;
 
