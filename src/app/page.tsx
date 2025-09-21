@@ -109,21 +109,24 @@ export default function KpiPage() {
       };
       
       const firstClean: any = {};
+      const originalHeaders: Record<string, string> = {};
       for (const k in jsonData[0]) {
-        firstClean[cleanHeader(k)] = jsonData[0][k];
+        const cleanedK = cleanHeader(k);
+        firstClean[cleanedK] = jsonData[0][k];
+        originalHeaders[cleanedK] = k;
       }
+      
+      const departmentHeaderRaw = originalHeaders[pickHeader(firstClean, ["departamento_residencia"])];
+      const municipalityHeaderRaw = originalHeaders[pickHeader(firstClean, ["municipio_de_residencia"])];
 
-      const departmentHeader = pickHeader(firstClean, ["departamento_residencia"]);
-      const municipalityHeader = pickHeader(firstClean, ["municipio_de_residencia"]);
-
-      const allDepartments = [...new Set(jsonData.map(row => row[cleanHeader(departmentHeader)]).filter(Boolean))].sort();
-      const allMunicipalities = [...new Set(jsonData.map(row => row[cleanHeader(municipalityHeader)]).filter(Boolean))].sort();
+      const allDepartments = [...new Set(jsonData.map(row => row[departmentHeaderRaw]).filter(Boolean))].sort();
+      const allMunicipalities = [...new Set(jsonData.map(row => row[municipalityHeaderRaw]).filter(Boolean))].sort();
       setDepartments(allDepartments);
       setMunicipalities(allMunicipalities);
       
       const filteredData = jsonData.filter(row => {
-          const rowDept = row[cleanHeader(departmentHeader)];
-          const rowMuni = row[cleanHeader(municipalityHeader)];
+          const rowDept = row[departmentHeaderRaw];
+          const rowMuni = row[municipalityHeaderRaw];
           const deptMatch = !selectedDepartment || rowDept === selectedDepartment;
           const muniMatch = !selectedMunicipality || rowMuni === selectedMunicipality;
           return deptMatch && muniMatch;
@@ -413,7 +416,7 @@ export default function KpiPage() {
             <div className="grid gap-1.5">
               <Label htmlFor="department-filter">Departamento</Label>
               <Select
-                onValueChange={setSelectedDepartment}
+                onValueChange={(value) => setSelectedDepartment(value === 'todos' ? '' : value)}
                 value={selectedDepartment}
                 disabled={departments.length === 0}
               >
@@ -421,7 +424,7 @@ export default function KpiPage() {
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="todos">Todos</SelectItem>
                   {departments.map(dept => (
                     <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                   ))}
@@ -431,7 +434,7 @@ export default function KpiPage() {
             <div className="grid gap-1.5">
               <Label htmlFor="municipality-filter">Municipio</Label>
               <Select
-                onValueChange={setSelectedMunicipality}
+                onValueChange={(value) => setSelectedMunicipality(value === 'todos' ? '' : value)}
                 value={selectedMunicipality}
                 disabled={municipalities.length === 0}
               >
@@ -439,7 +442,7 @@ export default function KpiPage() {
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="todos">Todos</SelectItem>
                   {municipalities.map(muni => (
                     <SelectItem key={muni} value={muni}>{muni}</SelectItem>
                   ))}
@@ -487,5 +490,3 @@ export default function KpiPage() {
     </div>
   );
 }
-
-    
