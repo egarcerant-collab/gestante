@@ -30,6 +30,8 @@ export default function KpiPage() {
   const [resultadoEcografiasResult, setResultadoEcografiasResult] = useState<number | null>(null);
   const [nutricionResult, setNutricionResult] = useState<number | null>(null);
   const [resultadoNutricionResult, setResultadoNutricionResult] = useState<number | null>(null);
+  const [odontologiaResult, setOdontologiaResult] = useState<number | null>(null);
+  const [resultadoOdontologiaResult, setResultadoOdontologiaResult] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -60,6 +62,8 @@ export default function KpiPage() {
     setResultadoEcografiasResult(null);
     setNutricionResult(null);
     setResultadoNutricionResult(null);
+    setOdontologiaResult(null);
+    setResultadoOdontologiaResult(null);
 
 
     try {
@@ -90,6 +94,7 @@ export default function KpiPage() {
       const eco2Header = 'ecografia_obstetrica_ecografia_obstetrica_para_la_deteccion_de_anomalias_estructurales_18__23';
       const eco3Header = 'ecografia_obstetrica_otras_ecografias';
       const nutricionHeader = 'atencion_especializada_escriba_las_fechas_ddmmaa_de_consultas_realizadas_por_especialistas_fecha_consulta_nutricion';
+      const odontologiaHeader = 'fecha_consulta_odontologica';
 
       let captacionCount = 0;
       let controlCount = 0;
@@ -100,6 +105,7 @@ export default function KpiPage() {
       let sinDatosChagasCount = 0;
       let sinDatosEcografiaCount = 0;
       let sinDatosNutricionCount = 0;
+      let sinDatosOdontologiaCount = 0;
       const totalRegistros = jsonData.length;
 
 
@@ -171,6 +177,12 @@ export default function KpiPage() {
         if (nutricionValue.includes("sin datos")) {
             sinDatosNutricionCount++;
         }
+
+        // KPI "Odontologia"
+        const odontologiaValue = String(cleanedRow[odontologiaHeader] || '').toLowerCase().trim();
+        if (odontologiaValue.includes("sin datos")) {
+            sinDatosOdontologiaCount++;
+        }
       });
       
       const examenesVihCompletos = totalRegistros - sinDatosVihCount;
@@ -194,6 +206,9 @@ export default function KpiPage() {
       const nutricionValidos = totalRegistros - sinDatosNutricionCount;
       setNutricionResult(nutricionValidos);
 
+      const odontologiaValidos = totalRegistros - sinDatosOdontologiaCount;
+      setOdontologiaResult(odontologiaValidos);
+
       setKpiResult(captacionCount);
       setGestantesControlResult(controlCount);
 
@@ -206,6 +221,7 @@ export default function KpiPage() {
         setResultadoChagasResult((chagasResultadosValidos / controlCount) * 100);
         setResultadoEcografiasResult((ecografiasValidas / controlCount) * 100);
         setResultadoNutricionResult((nutricionValidos / controlCount) * 100);
+        setResultadoOdontologiaResult((odontologiaValidos / controlCount) * 100);
       } else {
         setControlPercentageResult(0);
         setResultadoTamizajeVihResult(0);
@@ -215,6 +231,7 @@ export default function KpiPage() {
         setResultadoChagasResult(0);
         setResultadoEcografiasResult(0);
         setResultadoNutricionResult(0);
+        setResultadoOdontologiaResult(0);
       }
 
     } catch (err: any) {
@@ -522,7 +539,41 @@ export default function KpiPage() {
                 </Alert>
             )}
           </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mt-4">
+            {gestantesControlResult !== null && (
+                <Alert>
+                    <Terminal className="h-4 w-4" />
+                    <AlertTitle>Gestantes en Control</AlertTitle>
+                    <AlertDescription>
+                        <p className="text-2xl font-bold">{gestantesControlResult}</p>
+                        <p className="text-sm text-muted-foreground">Total de gestantes registradas.</p>
+                    </AlertDescription>
+                </Alert>
+            )}
+            {odontologiaResult !== null && (
+                <Alert>
+                    <Terminal className="h-4 w-4" />
+                    <AlertTitle>Odontología</AlertTitle>
+                    <AlertDescription>
+                        <p className="text-2xl font-bold">{odontologiaResult}</p>
+                        <p className="text-sm text-muted-foreground">Gestantes con consulta de odontología.</p>
+                    </AlertDescription>
+                </Alert>
+            )}
+            {resultadoOdontologiaResult !== null && (
+                <Alert>
+                    <Terminal className="h-4 w-4" />
+                    <AlertTitle>Resultado Odontología</AlertTitle>
+                    <AlertDescription>
+                        <p className="text-2xl font-bold">{resultadoOdontologiaResult.toFixed(2)}%</p>
+                        <p className="text-sm text-muted-foreground">Porcentaje de consulta de odontología.</p>
+                    </AlertDescription>
+                </Alert>
+            )}
+          </div>
         </CardFooter>
       </Card>
     </div>
   );
+
+    
