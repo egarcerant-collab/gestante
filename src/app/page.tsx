@@ -15,6 +15,7 @@ export default function KpiPage() {
   const [selectedFile, setSelectedFile] = useState<string>("");
   const [kpiResult, setKpiResult] = useState<number | null>(null);
   const [gestantesControlResult, setGestantesControlResult] = useState<number | null>(null);
+  const [controlPercentageResult, setControlPercentageResult] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -30,6 +31,7 @@ export default function KpiPage() {
     setError(null);
     setKpiResult(null);
     setGestantesControlResult(null);
+    setControlPercentageResult(null);
 
     try {
       const response = await fetch(selectedFile);
@@ -54,21 +56,27 @@ export default function KpiPage() {
             cleanedRow[cleanHeader(key)] = row[key];
         }
 
-        // KPI "Captación Oportuna"
-        const captacionValue = cleanedRow[captacionHeader];
-        if (captacionValue !== undefined && typeof captacionValue === 'number' && captacionValue < 10) {
-          captacionCount++;
-        }
-        
         // KPI "Gestantes en Control"
         const controlValue = cleanedRow[controlHeader];
         if (controlValue !== undefined && controlValue !== "") {
             controlCount++;
         }
+        
+        // KPI "Captación Oportuna"
+        const captacionValue = cleanedRow[captacionHeader];
+        if (captacionValue !== undefined && typeof captacionValue === 'number' && captacionValue < 10) {
+          captacionCount++;
+        }
       });
       
       setKpiResult(captacionCount);
       setGestantesControlResult(controlCount);
+
+      if (controlCount > 0) {
+        setControlPercentageResult((captacionCount / controlCount) * 100);
+      } else {
+        setControlPercentageResult(0);
+      }
 
     } catch (err: any) {
       console.error(err);
@@ -85,7 +93,7 @@ export default function KpiPage() {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-gray-100 dark:bg-gray-900">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-4xl">
         <CardHeader>
           <CardTitle>Cálculo de KPIs de Gestantes</CardTitle>
           <CardDescription>
@@ -119,26 +127,38 @@ export default function KpiPage() {
               </AlertDescription>
             </Alert>
           )}
-          {gestantesControlResult !== null && (
-             <Alert>
-                <Terminal className="h-4 w-4" />
-                <AlertTitle>Resultado: Gestantes en Control</AlertTitle>
-                <AlertDescription>
-                    <p className="text-2xl font-bold">{gestantesControlResult}</p>
-                    <p className="text-sm text-muted-foreground">Total de gestantes registradas.</p>
-                </AlertDescription>
-            </Alert>
-          )}
-          {kpiResult !== null && (
-             <Alert>
-                <Terminal className="h-4 w-4" />
-                <AlertTitle>Resultado: Captación Oportuna</AlertTitle>
-                <AlertDescription>
-                    <p className="text-2xl font-bold">{kpiResult}</p>
-                    <p className="text-sm text-muted-foreground">Gestantes con control antes de la semana 10.</p>
-                </AlertDescription>
-            </Alert>
-          )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+            {gestantesControlResult !== null && (
+               <Alert>
+                  <Terminal className="h-4 w-4" />
+                  <AlertTitle>Resultado: Gestantes en Control</AlertTitle>
+                  <AlertDescription>
+                      <p className="text-2xl font-bold">{gestantesControlResult}</p>
+                      <p className="text-sm text-muted-foreground">Total de gestantes registradas.</p>
+                  </AlertDescription>
+              </Alert>
+            )}
+            {kpiResult !== null && (
+               <Alert>
+                  <Terminal className="h-4 w-4" />
+                  <AlertTitle>Resultado: Captación Oportuna</AlertTitle>
+                  <AlertDescription>
+                      <p className="text-2xl font-bold">{kpiResult}</p>
+                      <p className="text-sm text-muted-foreground">Gestantes con control antes de la semana 10.</p>
+                  </AlertDescription>
+              </Alert>
+            )}
+            {controlPercentageResult !== null && (
+                <Alert>
+                    <Terminal className="h-4 w-4" />
+                    <AlertTitle>Control de Gestantes</AlertTitle>
+                    <AlertDescription>
+                        <p className="text-2xl font-bold">{controlPercentageResult.toFixed(2)}%</p>
+                        <p className="text-sm text-muted-foreground">Porcentaje de captación oportuna.</p>
+                    </AlertDescription>
+                </Alert>
+            )}
+          </div>
         </CardFooter>
       </Card>
     </div>
