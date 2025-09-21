@@ -5,14 +5,14 @@ import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Terminal } from 'lucide-react';
 
 declare var XLSX: any;
 
 export default function KpiPage() {
-  const [file, setFile] = useState<File | null>(null);
+  const [selectedFile, setSelectedFile] = useState<string>("");
   const [kpiResult, setKpiResult] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,8 +20,8 @@ export default function KpiPage() {
   const cleanHeader = (h: string) => String(h || '').normalize("NFD").replace(/\p{Diacritic}/gu, '').toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '');
 
   const calculateKpi = async () => {
-    if (!file) {
-      setError("Por favor, selecciona un archivo de Excel para analizar.");
+    if (!selectedFile) {
+      setError("Por favor, selecciona un archivo para analizar.");
       return;
     }
 
@@ -30,7 +30,12 @@ export default function KpiPage() {
     setKpiResult(null);
 
     try {
-      const data = await file.arrayBuffer();
+      const response = await fetch(selectedFile);
+      if (!response.ok) {
+        throw new Error(`No se pudo encontrar el archivo en la ruta especificada. Status: ${response.status}`);
+      }
+
+      const data = await response.arrayBuffer();
       const workbook = XLSX.read(data, { type: 'array' });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
@@ -61,12 +66,9 @@ export default function KpiPage() {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      setError(null); // Clear previous errors on new file selection
-    }
+  const handleFileChange = (value: string) => {
+    setSelectedFile(value);
+    setError(null); 
   };
 
   return (
@@ -80,10 +82,18 @@ export default function KpiPage() {
         </CardHeader>
         <CardContent className="grid gap-4">
           <div className="grid w-full max-w-sm items-center gap-1.5">
-            <Label htmlFor="excel-file">Archivo Excel</Label>
-            <Input id="excel-file" type="file" accept=".xlsx, .xls" onChange={handleFileChange} />
+            <Label htmlFor="excel-file">Selecciona un archivo</Label>
+            <Select onValueChange={handleFileChange} value={selectedFile}>
+              <SelectTrigger id="excel-file">
+                <SelectValue placeholder="Elige un mes..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="/BASES/2025/JULIO.xlsx">Julio 2025</SelectItem>
+                <SelectItem value="/BASES/2025/JUNIO.xlsx">Junio 2025</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <Button onClick={calculateKpi} className="w-full" disabled={isLoading || !file}>
+          <Button onClick={calculateKpi} className="w-full" disabled={isLoading || !selectedFile}>
             {isLoading ? "Calculando..." : "Calcular KPI"}
           </Button>
         </CardContent>
