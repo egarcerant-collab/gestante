@@ -26,6 +26,8 @@ export default function KpiPage() {
   const [resultadoTamizajeHbResult, setResultadoTamizajeHbResult] = useState<number | null>(null);
   const [chagasResultadosValidosResult, setChagasResultadosValidosResult] = useState<number | null>(null);
   const [resultadoChagasResult, setResultadoChagasResult] = useState<number | null>(null);
+  const [ecografiasValidasResult, setEcografiasValidasResult] = useState<number | null>(null);
+  const [resultadoEcografiasResult, setResultadoEcografiasResult] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -52,6 +54,8 @@ export default function KpiPage() {
     setResultadoTamizajeHbResult(null);
     setChagasResultadosValidosResult(null);
     setResultadoChagasResult(null);
+    setEcografiasValidasResult(null);
+    setResultadoEcografiasResult(null);
 
 
     try {
@@ -78,6 +82,9 @@ export default function KpiPage() {
       const hbResultadoHeader = 'antigeno_de_hepatitis_b_resultado_antigeno_superficie_hepatitis_b';
       const hbFechaHeader = 'antigeno_de_hepatitis_b_fecha_de_antigeno_superficie__hepatitis_b';
       const chagasHeader = 'chagas_resultado_chagas';
+      const eco1Header = 'ecografia_obstetrica_ecografia_obstetrica_con_translucencia_nucal_106__136';
+      const eco2Header = 'ecografia_obstetrica_ecografia_obstetrica_para_la_deteccion_de_anomalias_estructurales_18__23';
+      const eco3Header = 'ecografia_obstetrica_otras_ecografias';
 
       let captacionCount = 0;
       let controlCount = 0;
@@ -86,6 +93,7 @@ export default function KpiPage() {
       let sinDatosToxoplasmaCount = 0;
       let sinDatosHbCount = 0;
       let sinDatosChagasCount = 0;
+      let sinDatosEcografiaCount = 0;
       const totalRegistros = jsonData.length;
 
 
@@ -143,6 +151,14 @@ export default function KpiPage() {
         if (chagasValue.includes("sin datos")) {
             sinDatosChagasCount++;
         }
+
+        // KPI "Ecografias_Obstetricas_Validas"
+        const eco1Value = String(cleanedRow[eco1Header] || '').toLowerCase().trim();
+        const eco2Value = String(cleanedRow[eco2Header] || '').toLowerCase().trim();
+        const eco3Value = String(cleanedRow[eco3Header] || '').toLowerCase().trim();
+        if (eco1Value.includes("sin datos") && eco2Value.includes("sin datos") && eco3Value.includes("sin datos")) {
+            sinDatosEcografiaCount++;
+        }
       });
       
       const examenesVihCompletos = totalRegistros - sinDatosVihCount;
@@ -160,6 +176,9 @@ export default function KpiPage() {
       const chagasResultadosValidos = totalRegistros - sinDatosChagasCount;
       setChagasResultadosValidosResult(chagasResultadosValidos);
 
+      const ecografiasValidas = totalRegistros - sinDatosEcografiaCount;
+      setEcografiasValidasResult(ecografiasValidas);
+
       setKpiResult(captacionCount);
       setGestantesControlResult(controlCount);
 
@@ -170,6 +189,7 @@ export default function KpiPage() {
         setResultadoToxoplasmaResult((toxoplasmaValidos / controlCount) * 100);
         setResultadoTamizajeHbResult((examenesHbCompletos / controlCount) * 100);
         setResultadoChagasResult((chagasResultadosValidos / controlCount) * 100);
+        setResultadoEcografiasResult((ecografiasValidas / controlCount) * 100);
       } else {
         setControlPercentageResult(0);
         setResultadoTamizajeVihResult(0);
@@ -177,6 +197,7 @@ export default function KpiPage() {
         setResultadoToxoplasmaResult(0);
         setResultadoTamizajeHbResult(0);
         setResultadoChagasResult(0);
+        setResultadoEcografiasResult(0);
       }
 
     } catch (err: any) {
@@ -420,10 +441,40 @@ export default function KpiPage() {
                 </Alert>
             )}
           </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mt-4">
+            {gestantesControlResult !== null && (
+                <Alert>
+                    <Terminal className="h-4 w-4" />
+                    <AlertTitle>Gestantes en Control</AlertTitle>
+                    <AlertDescription>
+                        <p className="text-2xl font-bold">{gestantesControlResult}</p>
+                        <p className="text-sm text-muted-foreground">Total de gestantes registradas.</p>
+                    </AlertDescription>
+                </Alert>
+            )}
+            {ecografiasValidasResult !== null && (
+                <Alert>
+                    <Terminal className="h-4 w-4" />
+                    <AlertTitle>Ecografías Válidas</AlertTitle>
+                    <AlertDescription>
+                        <p className="text-2xl font-bold">{ecografiasValidasResult}</p>
+                        <p className="text-sm text-muted-foreground">Gestantes con ecografías válidas.</p>
+                    </AlertDescription>
+                </Alert>
+            )}
+            {resultadoEcografiasResult !== null && (
+                <Alert>
+                    <Terminal className="h-4 w-4" />
+                    <AlertTitle>Resultado Ecografías</AlertTitle>
+                    <AlertDescription>
+                        <p className="text-2xl font-bold">{resultadoEcografiasResult.toFixed(2)}%</p>
+                        <p className="text-sm text-muted-foreground">Porcentaje de ecografías.</p>
+                    </AlertDescription>
+                </Alert>
+            )}
+          </div>
         </CardFooter>
       </Card>
     </div>
   );
-}
-
     
