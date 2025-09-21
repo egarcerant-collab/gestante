@@ -22,6 +22,8 @@ export default function KpiPage() {
   const [resultadoTamizajeSifilisResult, setResultadoTamizajeSifilisResult] = useState<number | null>(null);
   const [toxoplasmaValidosResult, setToxoplasmaValidosResult] = useState<number | null>(null);
   const [resultadoToxoplasmaResult, setResultadoToxoplasmaResult] = useState<number | null>(null);
+  const [examenesHbCompletosResult, setExamenesHbCompletosResult] = useState<number | null>(null);
+  const [resultadoTamizajeHbResult, setResultadoTamizajeHbResult] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -44,6 +46,8 @@ export default function KpiPage() {
     setResultadoTamizajeSifilisResult(null);
     setToxoplasmaValidosResult(null);
     setResultadoToxoplasmaResult(null);
+    setExamenesHbCompletosResult(null);
+    setResultadoTamizajeHbResult(null);
 
 
     try {
@@ -67,12 +71,15 @@ export default function KpiPage() {
       const sifilis2Header = 'pruebas_de_tamizaje_para_sifilis_resultado_segunda_prueba_treponemica_rapida_sifilis';
       const sifilis3Header = 'pruebas_de_tamizaje_para_sifilis_resultado_tercera_prueba_treponemica_rapida_sifilis';
       const toxoplasmaHeader = 'toxoplasma_igg__igm_resultado_toxoplasma';
+      const hbResultadoHeader = 'antigeno_de_hepatitis_b_resultado_antigeno_superficie_hepatitis_b';
+      const hbFechaHeader = 'antigeno_de_hepatitis_b_fecha_de_antigeno_superficie__hepatitis_b';
 
       let captacionCount = 0;
       let controlCount = 0;
       let sinDatosVihCount = 0;
       let sinDatosSifilisCount = 0;
       let sinDatosToxoplasmaCount = 0;
+      let sinDatosHbCount = 0;
       const totalRegistros = jsonData.length;
 
 
@@ -117,6 +124,13 @@ export default function KpiPage() {
         if (toxoplasmaValue.includes("sin datos")) {
             sinDatosToxoplasmaCount++;
         }
+
+        // KPI "Examenes_HB_Completos"
+        const hbResultadoValue = String(cleanedRow[hbResultadoHeader] || '').toLowerCase().trim();
+        const hbFechaValue = cleanedRow[hbFechaHeader];
+        if (hbResultadoValue.includes("sin datos") && (hbFechaValue !== undefined && hbFechaValue !== "")) {
+            sinDatosHbCount++;
+        }
       });
       
       const examenesVihCompletos = totalRegistros - sinDatosVihCount;
@@ -127,6 +141,9 @@ export default function KpiPage() {
       
       const toxoplasmaValidos = totalRegistros - sinDatosToxoplasmaCount;
       setToxoplasmaValidosResult(toxoplasmaValidos);
+      
+      const examenesHbCompletos = totalRegistros - sinDatosHbCount;
+      setExamenesHbCompletosResult(examenesHbCompletos);
 
       setKpiResult(captacionCount);
       setGestantesControlResult(controlCount);
@@ -136,11 +153,13 @@ export default function KpiPage() {
         setResultadoTamizajeVihResult((examenesVihCompletos / controlCount) * 100);
         setResultadoTamizajeSifilisResult((examenesSifilisCompletos / controlCount) * 100);
         setResultadoToxoplasmaResult((toxoplasmaValidos / controlCount) * 100);
+        setResultadoTamizajeHbResult((examenesHbCompletos / controlCount) * 100);
       } else {
         setControlPercentageResult(0);
         setResultadoTamizajeVihResult(0);
         setResultadoTamizajeSifilisResult(0);
         setResultadoToxoplasmaResult(0);
+        setResultadoTamizajeHbResult(0);
       }
 
     } catch (err: any) {
@@ -316,6 +335,38 @@ export default function KpiPage() {
                     <AlertDescription>
                         <p className="text-2xl font-bold">{resultadoToxoplasmaResult.toFixed(2)}%</p>
                         <p className="text-sm text-muted-foreground">Porcentaje de tamizaje Toxoplasma.</p>
+                    </AlertDescription>
+                </Alert>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mt-4">
+            {gestantesControlResult !== null && (
+               <Alert>
+                  <Terminal className="h-4 w-4" />
+                  <AlertTitle>Gestantes en Control</AlertTitle>
+                  <AlertDescription>
+                      <p className="text-2xl font-bold">{gestantesControlResult}</p>
+                      <p className="text-sm text-muted-foreground">Total de gestantes registradas.</p>
+                  </AlertDescription>
+              </Alert>
+            )}
+            {examenesHbCompletosResult !== null && (
+               <Alert>
+                  <Terminal className="h-4 w-4" />
+                  <AlertTitle>Exámenes HB Completos</AlertTitle>
+                  <AlertDescription>
+                      <p className="text-2xl font-bold">{examenesHbCompletosResult}</p>
+                      <p className="text-sm text-muted-foreground">Gestantes con tamizaje Hepatitis B válido.</p>
+                  </AlertDescription>
+              </Alert>
+            )}
+            {resultadoTamizajeHbResult !== null && (
+                <Alert>
+                    <Terminal className="h-4 w-4" />
+                    <AlertTitle>Resultado Tamizaje HB</AlertTitle>
+                    <AlertDescription>
+                        <p className="text-2xl font-bold">{resultadoTamizajeHbResult.toFixed(2)}%</p>
+                        <p className="text-sm text-muted-foreground">Porcentaje de tamizaje Hepatitis B.</p>
                     </AlertDescription>
                 </Alert>
             )}
