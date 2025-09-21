@@ -2,14 +2,13 @@
 "use client";
 
 import { useState } from 'react';
+import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Terminal } from 'lucide-react';
-
-declare var XLSX: any;
 
 export default function KpiPage() {
   const [selectedFile, setSelectedFile] = useState<string>("");
@@ -36,7 +35,14 @@ export default function KpiPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const cleanHeader = (h: string) => String(h || '').normalize("NFD").replace(/\p{Diacritic}/gu, '').toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '');
+  const cleanHeader = (h: string) =>
+    String(h || "")
+      .normalize("NFD").replace(/\p{Diacritic}/gu, "")
+      .toLowerCase()
+      .replace(/\s+/g, "_")
+      .replace(/[^\w]/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_|_$/g, "");
 
   const calculateKpi = async () => {
     if (!selectedFile) {
@@ -67,7 +73,6 @@ export default function KpiPage() {
     setResultadoOdontologiaResult(null);
     setGinecologiaResult(null);
 
-
     try {
       const response = await fetch(selectedFile);
       if (!response.ok) {
@@ -80,26 +85,41 @@ export default function KpiPage() {
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: false });
 
-      const captacionHeader = 'edad_gest_inicio_control';
-      const controlHeader = 'no_de_identificacion';
-      const vih1Header = 'pruebas_de_tamizaje_para_vih_resultado_primer_tamizaje_prueba_de_vih_';
-      const vih2Header = 'resultado_segundo_tamizaje_prueba_de_vih';
-      const vih3Header = 'pruebas_de_tamizaje_para_vih_fecha_toma_prueba_vih_tercer_tamizaje';
-      const sifilis1Header = 'pruebas_de_tamizaje_para_sifilis_resultado_primera_prueba_treponemica_rapida_sifilis';
-      const sifilis2Header = 'pruebas_de_tamizaje_para_sifilis_resultado_segunda_prueba_treponemica_rapida_sifilis';
-      const sifilis3Header = 'pruebas_de_tamizaje_para_sifilis_resultado_tercera_prueba_treponemica_rapida_sifilis';
-      const toxoplasmaHeader = 'toxoplasma_igg_igm_resultado_toxoplasma';
-      const hbResultadoHeader = 'antigeno_de_hepatitis_b_resultado_antigeno_superficie_hepatitis_b';
-      const hbFechaHeader = 'antigeno_de_hepatitis_b_fecha_de_antigeno_superficie_hepatitis_b';
-      const chagasHeader = 'chagas_resultado_chagas';
-      const eco1Header = 'ecografia_obstetrica_ecografia_obstetrica_con_translucencia_nucal_106_136';
-      const eco2Header = 'ecografia_obstetrica_ecografia_obstetrica_para_la_deteccion_de_anomalias_estructurales_18_23';
-      const eco3Header = 'ecografia_obstetrica_otras_ecografias';
-      const nutricionHeader = 'atencion_especializada_escriba_las_fechas_ddmmaa_de_consultas_realizadas_por_especialistas_fecha_consulta_nutricion';
-      const odontologiaHeader = 'fecha_consulta_odontologica';
-      const ginecologiaHeader = 'atencion_especializada_escriba_las_fechas_ddmmaa_de_consultas_realizadas_por_especialistas_fecha_primera_consulta_ginecologia';
-      const riesgoHeader = 'clasificacion_del_riesgo';
+      if (jsonData.length === 0) {
+        setError("El archivo está vacío o no tiene el formato correcto.");
+        setIsLoading(false);
+        return;
+      }
+      
+      const pickHeader = (rowObj: Record<string, any>, includes: string[]) => {
+        const keys = Object.keys(rowObj);
+        return keys.find(k => includes.every(frag => k.includes(frag))) || "";
+      };
 
+      const firstClean: any = {};
+      for (const k in jsonData[0]) {
+        firstClean[cleanHeader(k)] = jsonData[0][k];
+      }
+
+      const controlHeader = pickHeader(firstClean, ["identificacion"]);
+      const captacionHeader = pickHeader(firstClean, ["edad", "gest", "inicio", "control"]);
+      const vih1Header = pickHeader(firstClean, ["vih", "primer", "tamiz"]);
+      const vih2Header = pickHeader(firstClean, ["vih", "segundo", "tamiz"]);
+      const vih3Header = pickHeader(firstClean, ["vih", "tercer", "tamiz"]);
+      const sifilis1Header = pickHeader(firstClean, ["sifilis", "primera"]);
+      const sifilis2Header = pickHeader(firstClean, ["sifilis", "segunda"]);
+      const sifilis3Header = pickHeader(firstClean, ["sifilis", "tercera"]);
+      const toxoplasmaHeader = pickHeader(firstClean, ["toxoplasma"]);
+      const hbResultadoHeader = pickHeader(firstClean, ["hepatitis", "b", "resultado"]);
+      const hbFechaHeader = pickHeader(firstClean, ["hepatitis", "b", "fecha"]);
+      const chagasHeader = pickHeader(firstClean, ["chagas"]);
+      const eco1Header = pickHeader(firstClean, ["ecografia", "translucencia"]);
+      const eco2Header = pickHeader(firstClean, ["ecografia", "anomalias"]);
+      const eco3Header = pickHeader(firstClean, ["ecografia", "otras"]);
+      const nutricionHeader = pickHeader(firstClean, ["nutricion"]);
+      const odontologiaHeader = pickHeader(firstClean, ["odontolog"]);
+      const ginecologiaHeader = pickHeader(firstClean, ["fecha","consulta","ginecolog"]);
+      const riesgoHeader = pickHeader(firstClean, ["clasificacion", "riesgo"]);
 
       let captacionCount = 0;
       let controlCount = 0;
@@ -114,63 +134,52 @@ export default function KpiPage() {
       let ginecologiaCount = 0;
       const totalRegistros = jsonData.length;
 
-
       jsonData.forEach((row: any) => {
         const cleanedRow: { [key: string]: any } = {};
         for (const key in row) {
             cleanedRow[cleanHeader(key)] = row[key];
         }
 
-        // KPI "Gestantes en Control"
         const controlValue = cleanedRow[controlHeader];
         if (controlValue !== undefined && controlValue !== "") {
             controlCount++;
         }
         
-        // KPI "Captación Oportuna"
         const captacionValue = cleanedRow[captacionHeader];
         if (captacionValue !== undefined && captacionValue !== "" && !isNaN(parseFloat(captacionValue)) && parseFloat(captacionValue) < 10) {
           captacionCount++;
         }
 
-        // KPI "Examenes_VIH_Completos"
         const vih1Value = String(cleanedRow[vih1Header] || '').toLowerCase();
         const vih2Value = String(cleanedRow[vih2Header] || '').toLowerCase();
         const vih3Value = String(cleanedRow[vih3Header] || '').toLowerCase();
-
         if (vih1Value.includes("sin datos") && vih2Value.includes("sin datos") && vih3Value.includes("sin datos")) {
           sinDatosVihCount++;
         }
 
-        // KPI "Examenes_Sifilis_Completos"
         const sif1Value = String(cleanedRow[sifilis1Header] || '').toLowerCase().trim();
         const sif2Value = String(cleanedRow[sifilis2Header] || '').toLowerCase().trim();
         const sif3Value = String(cleanedRow[sifilis3Header] || '').toLowerCase().trim();
-        
         if (sif1Value.includes("sin datos") && sif2Value.includes("sin datos") && sif3Value.includes("sin datos")) {
             sinDatosSifilisCount++;
         }
 
-        // KPI "Toxoplasma_Validos"
         const toxoplasmaValue = String(cleanedRow[toxoplasmaHeader] || '').toLowerCase().trim();
         if (toxoplasmaValue.includes("sin datos")) {
             sinDatosToxoplasmaCount++;
         }
 
-        // KPI "Examenes_HB_Completos"
         const hbResultadoValue = String(cleanedRow[hbResultadoHeader] || '').toLowerCase().trim();
         const hbFechaValue = cleanedRow[hbFechaHeader];
-        if (hbResultadoValue.includes("sin datos") && (hbFechaValue !== undefined && hbFechaValue !== "")) {
+        if (hbResultadoValue.includes("sin datos") && (hbFechaValue === undefined || hbFechaValue === "")) {
             sinDatosHbCount++;
         }
 
-        // KPI "Chagas_Resultados_Validos"
         const chagasValue = String(cleanedRow[chagasHeader] || '').toLowerCase().trim();
         if (chagasValue.includes("sin datos")) {
             sinDatosChagasCount++;
         }
 
-        // KPI "Ecografias_Obstetricas_Validas"
         const eco1Value = String(cleanedRow[eco1Header] || '').toLowerCase().trim();
         const eco2Value = String(cleanedRow[eco2Header] || '').toLowerCase().trim();
         const eco3Value = String(cleanedRow[eco3Header] || '').toLowerCase().trim();
@@ -178,38 +187,32 @@ export default function KpiPage() {
             sinDatosEcografiaCount++;
         }
 
-        // KPI "Nutricion"
         const nutricionValue = String(cleanedRow[nutricionHeader] || '').toLowerCase().trim();
         if (nutricionValue.includes("sin datos")) {
             sinDatosNutricionCount++;
         }
 
-        // KPI "Odontologia"
         const odontologiaValue = String(cleanedRow[odontologiaHeader] || '').toLowerCase().trim();
         if (odontologiaValue.includes("sin datos")) {
             sinDatosOdontologiaCount++;
         }
-
-        // KPI "Numerador Ginecologia"
+        
         const ginecologiaValue = cleanedRow[ginecologiaHeader];
         const riesgoValue = cleanedRow[riesgoHeader];
         const invalidGinecoValues = ["sin dato", "sin datos", "si datos"];
 
-        const isAltoRiesgo = String(riesgoValue || '').trim().toLowerCase() === "alto riesgo obstetrico";
-        
-        let hasValidGinecoDate = false;
-        if (ginecologiaValue !== undefined && ginecologiaValue !== "") {
+        if (String(riesgoValue || '').trim().toLowerCase() === "alto riesgo obstetrico") {
+          if (ginecologiaValue !== undefined && ginecologiaValue !== "") {
             const ginecoString = String(ginecologiaValue).trim().toLowerCase();
             if (!invalidGinecoValues.includes(ginecoString)) {
-                hasValidGinecoDate = true;
+              ginecologiaCount++;
             }
+          }
         }
-        
-        if (isAltoRiesgo && hasValidGinecoDate) {
-            ginecologiaCount++;
-        }
-
       });
+      
+      setKpiResult(captacionCount);
+      setGestantesControlResult(controlCount);
       
       const examenesVihCompletos = totalRegistros - sinDatosVihCount;
       setExamenesVihCompletosResult(examenesVihCompletos);
@@ -236,9 +239,6 @@ export default function KpiPage() {
       setOdontologiaResult(odontologiaValidos);
 
       setGinecologiaResult(ginecologiaCount);
-
-      setKpiResult(captacionCount);
-      setGestantesControlResult(controlCount);
 
       if (controlCount > 0) {
         setControlPercentageResult((captacionCount / controlCount) * 100);
@@ -415,5 +415,3 @@ export default function KpiPage() {
     </div>
   );
 }
-
-    

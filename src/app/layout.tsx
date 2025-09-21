@@ -14,9 +14,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <head>
-        <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" async></script>
-      </head>
       <body>
         {children}
       </body>
