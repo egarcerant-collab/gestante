@@ -262,7 +262,7 @@ export default function Home() {
               <button className="btn" id="loadBtn">Leer archivo</button>
             </div>
             <div className="row">
-              <small className="muted">Encabezados: <b>codigo</b>, <b>descripcion</b>, <b>unidad</b>, <b>cantidad</b>, <b>valor unitario</b>/<b>precio_unitario</b>, <b>iva</b>, <b>descuento</b>.</small>
+              <small className="muted">Encabezados: <b>codigo</b>, <b>descripcion</b>, <b>unidad</b>, <b>cantidad</b>, <b>valor_unitario</b>/<b>precio_unitario</b>, <b>iva</b>, <b>descuento</b>.</small>
             </div>
           </div>
 
@@ -444,5 +444,3 @@ export default function Home() {
     </>
   );
 }
-
-    
