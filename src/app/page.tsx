@@ -184,7 +184,7 @@ export default function KpiPage() {
 
         const hbResultadoValue = String(cleanedRow[hbResultadoHeader] || '').toLowerCase().trim();
         const hbFechaValue = cleanedRow[hbFechaHeader];
-        if (hbResultadoValue.includes("sin datos") && (hbFechaValue !== undefined && hbFechaValue !== "")) {
+        if (hbResultadoValue.includes("sin datos") && !(hbFechaValue === undefined || hbFechaValue === "")) {
             sinDatosHbCount++;
         }
 
@@ -275,6 +275,7 @@ export default function KpiPage() {
 
   const kpiGroups = [
     {
+      title: "KPIs de Captación",
       kpis: [
         { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
         { title: "Captación Oportuna", value: kpiResult, description: "Gestantes con control antes de la semana 10." },
@@ -282,6 +283,7 @@ export default function KpiPage() {
       ]
     },
     {
+      title: "KPIs de Tamizaje VIH",
       kpis: [
         { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
         { title: "Exámenes VIH Completos", value: examenesVihCompletosResult, description: "Gestantes con al menos 1 tamizaje VIH." },
@@ -289,6 +291,7 @@ export default function KpiPage() {
       ]
     },
     {
+      title: "KPIs de Tamizaje Sífilis",
       kpis: [
         { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
         { title: "Exámenes Sífilis Completos", value: examenesSifilisCompletosResult, description: "Gestantes con al menos 1 tamizaje Sífilis." },
@@ -296,6 +299,7 @@ export default function KpiPage() {
       ]
     },
     {
+      title: "KPIs de Tamizaje Toxoplasma",
       kpis: [
         { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
         { title: "Toxoplasma Válidos", value: toxoplasmaValidosResult, description: "Gestantes con tamizaje Toxoplasma válido." },
@@ -303,6 +307,7 @@ export default function KpiPage() {
       ]
     },
     {
+      title: "KPIs de Tamizaje Hepatitis B",
       kpis: [
         { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
         { title: "Exámenes HB Completos", value: examenesHbCompletosResult, description: "Gestantes con tamizaje Hepatitis B válido." },
@@ -310,6 +315,7 @@ export default function KpiPage() {
       ]
     },
     {
+      title: "KPIs de Tamizaje Chagas",
       kpis: [
         { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
         { "title": "Chagas Resultados Válidos", "value": chagasResultadosValidosResult, "description": "Gestantes con tamizaje de Chagas válido." },
@@ -317,6 +323,7 @@ export default function KpiPage() {
       ]
     },
     {
+      title: "KPIs de Ecografías",
       kpis: [
         { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
         { title: "Ecografías Válidas", value: ecografiasValidasResult, description: "Gestantes con ecografías válidas." },
@@ -324,6 +331,7 @@ export default function KpiPage() {
       ]
     },
     {
+      title: "KPIs de Nutrición",
       kpis: [
         { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
         { title: "Nutrición", value: nutricionResult, description: "Gestantes con consulta de nutrición." },
@@ -331,6 +339,7 @@ export default function KpiPage() {
       ]
     },
      {
+      title: "KPIs de Odontología",
       kpis: [
         { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
         { title: "Odontología", value: odontologiaResult, description: "Gestantes con consulta de odontología." },
