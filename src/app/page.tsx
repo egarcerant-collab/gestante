@@ -336,6 +336,14 @@ export default function KpiPage() {
         { title: "Odontología", value: odontologiaResult, description: "Gestantes con consulta de odontología." },
         { title: "Resultado Odontología", value: resultadoOdontologiaResult, isPercentage: true, description: "Porcentaje de consulta de odontología." },
       ]
+    },
+    {
+      title: "KPIs de Ginecología (Alto Riesgo)",
+      kpis: [
+        { title: "Numerador Ginecología", value: ginecologiaResult, description: "Gestantes de alto riesgo con consulta de ginecología válida." },
+        { title: "Denominador Ginecología", value: denominadorGinecologiaResult, description: "Total de gestantes con clasificación de 'Alto Riesgo Obstétrico'." },
+        { title: "Cobertura Ginecología", value: porcentajeGinecologiaResult, isPercentage: true, description: "Porcentaje de gestantes de alto riesgo con consulta de ginecología." },
+      ]
     }
   ];
 
@@ -377,65 +385,28 @@ export default function KpiPage() {
           )}
 
           {kpiGroups.map((group, index) => (
-            <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-              {group.kpis.map((kpi, kpiIndex) => {
-                if (kpi.value === null) return null;
-                return (
-                  <Alert key={kpiIndex}>
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>{kpi.title}</AlertTitle>
-                    <AlertDescription>
-                      <p className="text-2xl font-bold">
-                        {kpi.isPercentage ? `${kpi.value.toFixed(2)}%` : kpi.value}
-                      </p>
-                      <p className="text-sm text-muted-foreground">{kpi.description}</p>
-                    </AlertDescription>
-                  </Alert>
-                );
-              })}
+             <div key={index} className="w-full">
+              {group.title && <h3 className="text-lg font-semibold mb-2">{group.title}</h3>}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                {group.kpis.map((kpi, kpiIndex) => {
+                  if (kpi.value === null) return null;
+                  return (
+                    <Alert key={kpiIndex}>
+                      <AlertTitle>{kpi.title}</AlertTitle>
+                      <AlertDescription>
+                        <p className="text-2xl font-bold">
+                          {kpi.isPercentage ? `${kpi.value.toFixed(2)}%` : kpi.value}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{kpi.description}</p>
+                      </AlertDescription>
+                    </Alert>
+                  );
+                })}
+              </div>
             </div>
           ))}
-
-           {ginecologiaResult !== null && (
-               <div className="mt-4 w-full">
-                <Alert>
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Numerador Ginecología</AlertTitle>
-                    <AlertDescription>
-                        <p className="text-2xl font-bold">{ginecologiaResult}</p>
-                        <p className="text-sm text-muted-foreground">Gestantes de alto riesgo con consulta de ginecología válida.</p>
-                    </AlertDescription>
-                </Alert>
-               </div>
-            )}
-            {denominadorGinecologiaResult !== null && (
-               <div className="mt-4 w-full">
-                <Alert>
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Denominador Ginecología</AlertTitle>
-                    <AlertDescription>
-                        <p className="text-2xl font-bold">{denominadorGinecologiaResult}</p>
-                        <p className="text-sm text-muted-foreground">Total de gestantes con clasificación de "Alto Riesgo Obstétrico".</p>
-                    </AlertDescription>
-                </Alert>
-               </div>
-            )}
-            {porcentajeGinecologiaResult !== null && (
-              <div className="mt-4 w-full">
-                <Alert>
-                  <Terminal className="h-4 w-4" />
-                  <AlertTitle>Porcentaje Cobertura Ginecología</AlertTitle>
-                  <AlertDescription>
-                    <p className="text-2xl font-bold">{porcentajeGinecologiaResult.toFixed(2)}%</p>
-                    <p className="text-sm text-muted-foreground">Porcentaje de gestantes de alto riesgo con consulta de ginecología.</p>
-                  </AlertDescription>
-                </Alert>
-              </div>
-            )}
         </CardFooter>
       </Card>
     </div>
   );
 }
-
-    
