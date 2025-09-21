@@ -191,13 +191,14 @@ export default function KpiPage() {
         }
 
         // KPI "Numerador Ginecologia"
-        const ginecologiaValue = String(cleanedRow[ginecologiaHeader] || '').toLowerCase().trim();
-        const riesgoValue = String(cleanedRow[riesgoHeader] || '').toLowerCase();
+        const ginecologiaValue = String(cleanedRow[ginecologiaHeader] || '');
+        const riesgoValue = String(cleanedRow[riesgoHeader] || '');
         const invalidGinecoValues = ["sin dato", "sin datos", "si datos"];
 
-        if (riesgoValue === "alto riesgo obstétrico" && 
-            ginecologiaValue && 
-            !invalidGinecoValues.includes(ginecologiaValue)) {
+        const isAltoRiesgo = riesgoValue.trim().toLowerCase() === "alto riesgo obstétrico";
+        const hasValidGinecoDate = ginecologiaValue.trim() !== "" && !invalidGinecoValues.includes(ginecologiaValue.trim().toLowerCase());
+
+        if (isAltoRiesgo && hasValidGinecoDate) {
             ginecologiaCount++;
         }
       });
@@ -406,5 +407,3 @@ export default function KpiPage() {
     </div>
   );
 }
-
-    
