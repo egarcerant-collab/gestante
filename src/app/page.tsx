@@ -20,6 +20,8 @@ export default function KpiPage() {
   const [resultadoTamizajeVihResult, setResultadoTamizajeVihResult] = useState<number | null>(null);
   const [examenesSifilisCompletosResult, setExamenesSifilisCompletosResult] = useState<number | null>(null);
   const [resultadoTamizajeSifilisResult, setResultadoTamizajeSifilisResult] = useState<number | null>(null);
+  const [toxoplasmaValidosResult, setToxoplasmaValidosResult] = useState<number | null>(null);
+  const [resultadoToxoplasmaResult, setResultadoToxoplasmaResult] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -40,6 +42,8 @@ export default function KpiPage() {
     setResultadoTamizajeVihResult(null);
     setExamenesSifilisCompletosResult(null);
     setResultadoTamizajeSifilisResult(null);
+    setToxoplasmaValidosResult(null);
+    setResultadoToxoplasmaResult(null);
 
 
     try {
@@ -62,11 +66,13 @@ export default function KpiPage() {
       const sifilis1Header = 'pruebas_de_tamizaje_para_sifilis_resultado_primera_prueba_treponemica_rapida_sifilis';
       const sifilis2Header = 'pruebas_de_tamizaje_para_sifilis_resultado_segunda_prueba_treponemica_rapida_sifilis';
       const sifilis3Header = 'pruebas_de_tamizaje_para_sifilis_resultado_tercera_prueba_treponemica_rapida_sifilis';
+      const toxoplasmaHeader = 'toxoplasma_igg__igm_resultado_toxoplasma';
 
       let captacionCount = 0;
       let controlCount = 0;
       let sinDatosVihCount = 0;
       let sinDatosSifilisCount = 0;
+      let sinDatosToxoplasmaCount = 0;
       const totalRegistros = jsonData.length;
 
 
@@ -105,6 +111,12 @@ export default function KpiPage() {
         if (sif1Value.includes("sin datos") && sif2Value.includes("sin datos") && sif3Value.includes("sin datos")) {
             sinDatosSifilisCount++;
         }
+
+        // KPI "Toxoplasma_Validos"
+        const toxoplasmaValue = String(cleanedRow[toxoplasmaHeader] || '').toLowerCase().trim();
+        if (toxoplasmaValue.includes("sin datos")) {
+            sinDatosToxoplasmaCount++;
+        }
       });
       
       const examenesVihCompletos = totalRegistros - sinDatosVihCount;
@@ -112,6 +124,9 @@ export default function KpiPage() {
 
       const examenesSifilisCompletos = totalRegistros - sinDatosSifilisCount;
       setExamenesSifilisCompletosResult(examenesSifilisCompletos);
+      
+      const toxoplasmaValidos = totalRegistros - sinDatosToxoplasmaCount;
+      setToxoplasmaValidosResult(toxoplasmaValidos);
 
       setKpiResult(captacionCount);
       setGestantesControlResult(controlCount);
@@ -120,10 +135,12 @@ export default function KpiPage() {
         setControlPercentageResult((captacionCount / controlCount) * 100);
         setResultadoTamizajeVihResult((examenesVihCompletos / controlCount) * 100);
         setResultadoTamizajeSifilisResult((examenesSifilisCompletos / controlCount) * 100);
+        setResultadoToxoplasmaResult((toxoplasmaValidos / controlCount) * 100);
       } else {
         setControlPercentageResult(0);
         setResultadoTamizajeVihResult(0);
         setResultadoTamizajeSifilisResult(0);
+        setResultadoToxoplasmaResult(0);
       }
 
     } catch (err: any) {
@@ -271,8 +288,42 @@ export default function KpiPage() {
                 </Alert>
             )}
           </div>
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mt-4">
+            {gestantesControlResult !== null && (
+               <Alert>
+                  <Terminal className="h-4 w-4" />
+                  <AlertTitle>Gestantes en Control</AlertTitle>
+                  <AlertDescription>
+                      <p className="text-2xl font-bold">{gestantesControlResult}</p>
+                      <p className="text-sm text-muted-foreground">Total de gestantes registradas.</p>
+                  </AlertDescription>
+              </Alert>
+            )}
+            {toxoplasmaValidosResult !== null && (
+               <Alert>
+                  <Terminal className="h-4 w-4" />
+                  <AlertTitle>Toxoplasma Válidos</AlertTitle>
+                  <AlertDescription>
+                      <p className="text-2xl font-bold">{toxoplasmaValidosResult}</p>
+                      <p className="text-sm text-muted-foreground">Gestantes con tamizaje Toxoplasma válido.</p>
+                  </AlertDescription>
+              </Alert>
+            )}
+            {resultadoToxoplasmaResult !== null && (
+                <Alert>
+                    <Terminal className="h-4 w-4" />
+                    <AlertTitle>Resultado de Toxoplasma</AlertTitle>
+                    <AlertDescription>
+                        <p className="text-2xl font-bold">{resultadoToxoplasmaResult.toFixed(2)}%</p>
+                        <p className="text-sm text-muted-foreground">Porcentaje de tamizaje Toxoplasma.</p>
+                    </AlertDescription>
+                </Alert>
+            )}
+          </div>
         </CardFooter>
       </Card>
     </div>
   );
 }
+
+    
