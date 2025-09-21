@@ -16,6 +16,8 @@ export default function KpiPage() {
   const [kpiResult, setKpiResult] = useState<number | null>(null);
   const [gestantesControlResult, setGestantesControlResult] = useState<number | null>(null);
   const [controlPercentageResult, setControlPercentageResult] = useState<number | null>(null);
+  const [examenesVihCompletosResult, setExamenesVihCompletosResult] = useState<number | null>(null);
+  const [resultadoTamizajeVihResult, setResultadoTamizajeVihResult] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -32,6 +34,8 @@ export default function KpiPage() {
     setKpiResult(null);
     setGestantesControlResult(null);
     setControlPercentageResult(null);
+    setExamenesVihCompletosResult(null);
+    setResultadoTamizajeVihResult(null);
 
     try {
       const response = await fetch(selectedFile);
@@ -47,8 +51,15 @@ export default function KpiPage() {
 
       const captacionHeader = 'edad_gest_inicio_control';
       const controlHeader = 'no_de_identificacion';
+      const vih1Header = 'pruebas_de_tamizaje_para_vih_resultado_primer_tamizaje_prueba_de_vih_';
+      const vih2Header = 'resultado_segundo_tamizaje_prueba_de_vih';
+      const vih3Header = 'pruebas_de_tamizaje_para_vih_fecha_toma_prueba_vih_tercer_tamizaje';
+
       let captacionCount = 0;
       let controlCount = 0;
+      let sinDatosVihCount = 0;
+      const totalRegistros = jsonData.length;
+
 
       jsonData.forEach((row: any) => {
         const cleanedRow: { [key: string]: any } = {};
@@ -67,15 +78,29 @@ export default function KpiPage() {
         if (captacionValue !== undefined && typeof captacionValue === 'number' && captacionValue < 10) {
           captacionCount++;
         }
+
+        // KPI "Examenes_VIH_Completos"
+        const vih1Value = String(cleanedRow[vih1Header] || '').toLowerCase();
+        const vih2Value = String(cleanedRow[vih2Header] || '').toLowerCase();
+        const vih3Value = String(cleanedRow[vih3Header] || '').toLowerCase();
+
+        if (vih1Value.includes("sin datos") && vih2Value.includes("sin datos") && vih3Value.includes("sin datos")) {
+          sinDatosVihCount++;
+        }
       });
       
+      const examenesVihCompletos = totalRegistros - sinDatosVihCount;
+      setExamenesVihCompletosResult(examenesVihCompletos);
+
       setKpiResult(captacionCount);
       setGestantesControlResult(controlCount);
 
       if (controlCount > 0) {
         setControlPercentageResult((captacionCount / controlCount) * 100);
+        setResultadoTamizajeVihResult((examenesVihCompletos / controlCount) * 100);
       } else {
         setControlPercentageResult(0);
+        setResultadoTamizajeVihResult(0);
       }
 
     } catch (err: any) {
@@ -155,6 +180,38 @@ export default function KpiPage() {
                     <AlertDescription>
                         <p className="text-2xl font-bold">{controlPercentageResult.toFixed(2)}%</p>
                         <p className="text-sm text-muted-foreground">Porcentaje de control.</p>
+                    </AlertDescription>
+                </Alert>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mt-4">
+            {gestantesControlResult !== null && (
+               <Alert>
+                  <Terminal className="h-4 w-4" />
+                  <AlertTitle>Gestantes en Control</AlertTitle>
+                  <AlertDescription>
+                      <p className="text-2xl font-bold">{gestantesControlResult}</p>
+                      <p className="text-sm text-muted-foreground">Total de gestantes registradas.</p>
+                  </AlertDescription>
+              </Alert>
+            )}
+            {examenesVihCompletosResult !== null && (
+               <Alert>
+                  <Terminal className="h-4 w-4" />
+                  <AlertTitle>Exámenes VIH Completos</AlertTitle>
+                  <AlertDescription>
+                      <p className="text-2xl font-bold">{examenesVihCompletosResult}</p>
+                      <p className="text-sm text-muted-foreground">Gestantes con al menos 1 tamizaje VIH.</p>
+                  </AlertDescription>
+              </Alert>
+            )}
+            {resultadoTamizajeVihResult !== null && (
+                <Alert>
+                    <Terminal className="h-4 w-4" />
+                    <AlertTitle>Resultado Tamizaje VIH</AlertTitle>
+                    <AlertDescription>
+                        <p className="text-2xl font-bold">{resultadoTamizajeVihResult.toFixed(2)}%</p>
+                        <p className="text-sm text-muted-foreground">Porcentaje de tamizaje VIH.</p>
                     </AlertDescription>
                 </Alert>
             )}
