@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,10 +38,19 @@ export default function KpiPage() {
   const [municipalities, setMunicipalities] = useState<string[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
   const [selectedMunicipality, setSelectedMunicipality] = useState<string>("");
+  
+  const [allData, setAllData] = useState<any[]>([]);
+  const [deptMuniMap, setDeptMuniMap] = useState<Record<string, string[]>>({});
 
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasCalculated, setHasCalculated] = useState(false);
+  
+  useEffect(() => {
+    if (hasCalculated) {
+      calculateKpi();
+    }
+  }, [selectedDepartment, selectedMunicipality]);
 
   const cleanHeader = (h: string) =>
     String(h || "")
@@ -52,7 +61,7 @@ export default function KpiPage() {
       .replace(/_+/g, "_")
       .replace(/^_|_$/g, "");
 
-  const calculateKpi = async () => {
+  const calculateKpi = async (isInitialRun = false) => {
     if (!selectedFile) {
       setError("Por favor, selecciona un archivo para analizar.");
       return;
@@ -82,31 +91,32 @@ export default function KpiPage() {
     setGinecologiaResult(null);
     setDenominadorGinecologiaResult(null);
     setPorcentajeGinecologiaResult(null);
-    setHasCalculated(false);
+    if (isInitialRun) {
+      setHasCalculated(false);
+    }
 
 
     try {
-      const response = await fetch(selectedFile);
-      if (!response.ok) {
-        throw new Error(`No se pudo encontrar el archivo en la ruta especificada. Status: ${response.status}`);
+      let jsonData: any[] = allData;
+
+      if (isInitialRun || allData.length === 0) {
+        const response = await fetch(selectedFile);
+        if (!response.ok) {
+          throw new Error(`No se pudo encontrar el archivo en la ruta especificada. Status: ${response.status}`);
+        }
+        const data = await response.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: false });
+        setAllData(jsonData);
       }
-
-      const data = await response.arrayBuffer();
-      const workbook = XLSX.read(data, { type: 'array' });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: false });
-
+      
       if (jsonData.length === 0) {
         setError("El archivo está vacío o no tiene el formato correcto.");
         setIsLoading(false);
         return;
       }
-
-      const pickHeader = (rowObj: Record<string, any>, includes: string[]) => {
-        const keys = Object.keys(rowObj);
-        return keys.find(k => includes.every(frag => k.includes(frag))) || "";
-      };
       
       const firstClean: any = {};
       const originalHeaders: Record<string, string> = {};
@@ -119,16 +129,37 @@ export default function KpiPage() {
       const departmentHeaderRaw = originalHeaders[pickHeader(firstClean, ["departamento_residencia"])];
       const municipalityHeaderRaw = originalHeaders[pickHeader(firstClean, ["municipio_de_residencia"])];
 
-      if (!hasCalculated) {
-        const allDepartments = [...new Set(jsonData.map(row => String(row[departmentHeaderRaw]).trim().toUpperCase()).filter(Boolean))].sort();
-        const allMunicipalities = [...new Set(jsonData.map(row => String(row[municipalityHeaderRaw]).trim().toUpperCase()).filter(Boolean))].sort();
+      if (isInitialRun) {
+        const localDeptMuniMap: Record<string, string[]> = {};
+        jsonData.forEach(row => {
+          const dept = String(row[departmentHeaderRaw] || '').trim().toUpperCase();
+          const muni = String(row[municipalityHeaderRaw] || '').trim().toUpperCase();
+          if (dept && muni) {
+            if (!localDeptMuniMap[dept]) {
+              localDeptMuniMap[dept] = [];
+            }
+            if (!localDeptMuniMap[dept].includes(muni)) {
+              localDeptMuniMap[dept].push(muni);
+            }
+          }
+        });
+
+        const allDepartments = Object.keys(localDeptMuniMap).sort();
+        const allMunicipalities = [...new Set(Object.values(localDeptMuniMap).flat())].sort();
+        
+        setDeptMuniMap(localDeptMuniMap);
         setDepartments(allDepartments);
         setMunicipalities(allMunicipalities);
       }
       
+      const pickHeader = (rowObj: Record<string, any>, includes: string[]) => {
+        const keys = Object.keys(rowObj);
+        return keys.find(k => includes.every(frag => k.includes(frag))) || "";
+      };
+
       const filteredData = jsonData.filter(row => {
-          const rowDept = String(row[departmentHeaderRaw]).trim().toUpperCase();
-          const rowMuni = String(row[municipalityHeaderRaw]).trim().toUpperCase();
+          const rowDept = String(row[departmentHeaderRaw] || '').trim().toUpperCase();
+          const rowMuni = String(row[municipalityHeaderRaw] || '').trim().toUpperCase();
           const deptMatch = !selectedDepartment || rowDept === selectedDepartment;
           const muniMatch = !selectedMunicipality || rowMuni === selectedMunicipality;
           return deptMatch && muniMatch;
@@ -293,6 +324,7 @@ export default function KpiPage() {
 
     } catch (err: any) {
       console.error(err);
+      setAllData([]);
       setError(err.message || "Ocurrió un error al leer o procesar el archivo. Asegúrate de que el formato sea correcto y que las columnas necesarias existan.");
     } finally {
       setIsLoading(false);
@@ -301,6 +333,7 @@ export default function KpiPage() {
 
   const handleFileChange = (value: string) => {
     setSelectedFile(value);
+    setAllData([]); 
     setError(null);
     setHasCalculated(false);
     setDepartments([]);
@@ -308,11 +341,23 @@ export default function KpiPage() {
     setSelectedDepartment("");
     setSelectedMunicipality("");
   };
-
-  const handleFilterChange = () => {
-     if (hasCalculated) {
-      calculateKpi();
+  
+  const handleDepartmentChange = (value: string) => {
+    const newDept = value === 'todos' ? '' : value;
+    setSelectedDepartment(newDept);
+    setSelectedMunicipality(''); // Reset municipality when department changes
+  
+    if (newDept) {
+      setMunicipalities(deptMuniMap[newDept]?.sort() || []);
+    } else {
+      const allMunis = [...new Set(Object.values(deptMuniMap).flat())].sort();
+      setMunicipalities(allMunis);
     }
+  };
+
+  const handleMunicipalityChange = (value: string) => {
+      const newMuni = value === 'todos' ? '' : value;
+      setSelectedMunicipality(newMuni);
   }
 
   const kpiGroups = [
@@ -426,7 +471,7 @@ export default function KpiPage() {
                 <div className="grid gap-1.5">
                   <Label htmlFor="department-filter">Departamento</Label>
                   <Select
-                    onValueChange={(value) => setSelectedDepartment(value === 'todos' ? '' : value)}
+                    onValueChange={handleDepartmentChange}
                     value={selectedDepartment}
                     disabled={departments.length === 0}
                   >
@@ -444,7 +489,7 @@ export default function KpiPage() {
                 <div className="grid gap-1.5">
                   <Label htmlFor="municipality-filter">Municipio</Label>
                   <Select
-                    onValueChange={(value) => setSelectedMunicipality(value === 'todos' ? '' : value)}
+                    onValueChange={handleMunicipalityChange}
                     value={selectedMunicipality}
                     disabled={municipalities.length === 0}
                   >
@@ -462,7 +507,7 @@ export default function KpiPage() {
               </>
             )}
           </div>
-          <Button onClick={calculateKpi} className="w-full" disabled={isLoading || !selectedFile}>
+          <Button onClick={() => calculateKpi(true)} className="w-full" disabled={isLoading || !selectedFile}>
             {isLoading ? "Calculando..." : "Calcular Indicadores"}
           </Button>
         </CardContent>
