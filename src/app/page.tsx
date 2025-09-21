@@ -198,7 +198,7 @@ export default function KpiPage() {
         const isAltoRiesgo = riesgoValue === "alto riesgo obstetrico";
         
         let hasValidGinecoDate = false;
-        if (ginecologiaValue) { // Checks for not null, not undefined, not empty string, not 0
+        if (ginecologiaValue) { 
             const ginecoString = String(ginecologiaValue).trim().toLowerCase();
             if (!invalidGinecoValues.includes(ginecoString)) {
                 hasValidGinecoDate = true;
@@ -414,3 +414,5 @@ export default function KpiPage() {
     </div>
   );
 }
+
+    
