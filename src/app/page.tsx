@@ -120,15 +120,15 @@ export default function KpiPage() {
       const municipalityHeaderRaw = originalHeaders[pickHeader(firstClean, ["municipio_de_residencia"])];
 
       if (!hasCalculated) {
-        const allDepartments = [...new Set(jsonData.map(row => row[departmentHeaderRaw]).filter(Boolean))].sort();
-        const allMunicipalities = [...new Set(jsonData.map(row => row[municipalityHeaderRaw]).filter(Boolean))].sort();
+        const allDepartments = [...new Set(jsonData.map(row => String(row[departmentHeaderRaw]).trim().toUpperCase()).filter(Boolean))].sort();
+        const allMunicipalities = [...new Set(jsonData.map(row => String(row[municipalityHeaderRaw]).trim().toUpperCase()).filter(Boolean))].sort();
         setDepartments(allDepartments);
         setMunicipalities(allMunicipalities);
       }
       
       const filteredData = jsonData.filter(row => {
-          const rowDept = row[departmentHeaderRaw];
-          const rowMuni = row[municipalityHeaderRaw];
+          const rowDept = String(row[departmentHeaderRaw]).trim().toUpperCase();
+          const rowMuni = String(row[municipalityHeaderRaw]).trim().toUpperCase();
           const deptMatch = !selectedDepartment || rowDept === selectedDepartment;
           const muniMatch = !selectedMunicipality || rowMuni === selectedMunicipality;
           return deptMatch && muniMatch;
