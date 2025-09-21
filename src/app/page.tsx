@@ -192,22 +192,23 @@ export default function KpiPage() {
 
         // KPI "Numerador Ginecologia"
         const ginecologiaValue = cleanedRow[ginecologiaHeader];
-        const riesgoValue = String(cleanedRow[riesgoHeader] || '').trim().toLowerCase();
+        const riesgoValue = cleanedRow[riesgoHeader];
         const invalidGinecoValues = ["sin dato", "sin datos", "si datos"];
 
-        const isAltoRiesgo = riesgoValue === "alto riesgo obstetrico";
+        const isAltoRiesgo = String(riesgoValue || '').trim().toLowerCase() === "alto riesgo obstetrico";
         
         let hasValidGinecoDate = false;
-        if (ginecologiaValue) { 
+        if (ginecologiaValue !== undefined && ginecologiaValue !== "") {
             const ginecoString = String(ginecologiaValue).trim().toLowerCase();
-            if (!invalidGinecoValues.includes(ginecoString) && ginecoString !== '') {
+            if (!invalidGinecoValues.includes(ginecoString)) {
                 hasValidGinecoDate = true;
             }
         }
-
+        
         if (isAltoRiesgo && hasValidGinecoDate) {
             ginecologiaCount++;
         }
+
       });
       
       const examenesVihCompletos = totalRegistros - sinDatosVihCount;
