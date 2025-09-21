@@ -275,7 +275,7 @@ export default function KpiPage() {
 
   const kpiGroups = [
     {
-      title: "KPIs de Captación",
+      title: "Indicadores de Captación",
       kpis: [
         { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
         { title: "Captación Oportuna", value: kpiResult, description: "Gestantes con control antes de la semana 10." },
@@ -283,7 +283,7 @@ export default function KpiPage() {
       ]
     },
     {
-      title: "KPIs de Tamizaje VIH",
+      title: "Indicadores de Tamizaje VIH",
       kpis: [
         { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
         { title: "Exámenes VIH Completos", value: examenesVihCompletosResult, description: "Gestantes con al menos 1 tamizaje VIH." },
@@ -291,7 +291,7 @@ export default function KpiPage() {
       ]
     },
     {
-      title: "KPIs de Tamizaje Sífilis",
+      title: "Indicadores de Tamizaje Sífilis",
       kpis: [
         { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
         { title: "Exámenes Sífilis Completos", value: examenesSifilisCompletosResult, description: "Gestantes con al menos 1 tamizaje Sífilis." },
@@ -299,7 +299,7 @@ export default function KpiPage() {
       ]
     },
     {
-      title: "KPIs de Tamizaje Toxoplasma",
+      title: "Indicadores de Tamizaje Toxoplasma",
       kpis: [
         { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
         { title: "Toxoplasma Válidos", value: toxoplasmaValidosResult, description: "Gestantes con tamizaje Toxoplasma válido." },
@@ -307,7 +307,7 @@ export default function KpiPage() {
       ]
     },
     {
-      title: "KPIs de Tamizaje Hepatitis B",
+      title: "Indicadores de Tamizaje Hepatitis B",
       kpis: [
         { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
         { title: "Exámenes HB Completos", value: examenesHbCompletosResult, description: "Gestantes con tamizaje Hepatitis B válido." },
@@ -315,7 +315,7 @@ export default function KpiPage() {
       ]
     },
     {
-      title: "KPIs de Tamizaje Chagas",
+      title: "Indicadores de Tamizaje Chagas",
       kpis: [
         { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
         { "title": "Chagas Resultados Válidos", "value": chagasResultadosValidosResult, "description": "Gestantes con tamizaje de Chagas válido." },
@@ -323,7 +323,7 @@ export default function KpiPage() {
       ]
     },
     {
-      title: "KPIs de Ecografías",
+      title: "Indicadores de Ecografías",
       kpis: [
         { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
         { title: "Ecografías Válidas", value: ecografiasValidasResult, description: "Gestantes con ecografías válidas." },
@@ -331,7 +331,7 @@ export default function KpiPage() {
       ]
     },
     {
-      title: "KPIs de Nutrición",
+      title: "Indicadores de Nutrición",
       kpis: [
         { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
         { title: "Nutrición", value: nutricionResult, description: "Gestantes con consulta de nutrición." },
@@ -339,7 +339,7 @@ export default function KpiPage() {
       ]
     },
      {
-      title: "KPIs de Odontología",
+      title: "Indicadores de Odontología",
       kpis: [
         { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
         { title: "Odontología", value: odontologiaResult, description: "Gestantes con consulta de odontología." },
@@ -347,7 +347,7 @@ export default function KpiPage() {
       ]
     },
     {
-      title: "KPIs de Ginecología (Alto Riesgo)",
+      title: "Indicadores de Ginecología (Alto Riesgo)",
       kpis: [
         { title: "Numerador Ginecología", value: ginecologiaResult, description: "Gestantes de alto riesgo con consulta de ginecología válida." },
         { title: "Denominador Ginecología", value: denominadorGinecologiaResult, description: "Total de gestantes con clasificación de 'Alto Riesgo Obstétrico'." },
@@ -360,9 +360,9 @@ export default function KpiPage() {
     <div className="flex min-h-screen w-full items-center justify-center bg-gray-100 dark:bg-gray-900">
       <Card className="w-full max-w-4xl">
         <CardHeader>
-          <CardTitle>Cálculo de KPIs de Gestantes</CardTitle>
+          <CardTitle>Cálculo de Indicadores de Gestantes</CardTitle>
           <CardDescription>
-            Calcula los KPIs de "Captación Oportuna" y "Gestantes en Control" desde un archivo Excel.
+            Calcula los indicadores de "Captación Oportuna" y "Gestantes en Control" desde un archivo Excel.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
@@ -379,7 +379,7 @@ export default function KpiPage() {
             </Select>
           </div>
           <Button onClick={calculateKpi} className="w-full" disabled={isLoading || !selectedFile}>
-            {isLoading ? "Calculando..." : "Calcular KPIs"}
+            {isLoading ? "Calculando..." : "Calcular Indicadores"}
           </Button>
         </CardContent>
         <CardFooter className="flex flex-col items-start gap-4">
@@ -393,7 +393,7 @@ export default function KpiPage() {
             </Alert>
           )}
 
-          {kpiGroups.map((group, index) => (
+          {kpiResult !== null && kpiGroups.map((group, index) => (
              <div key={index} className="w-full">
               {group.title && <h3 className="text-lg font-semibold mb-2">{group.title}</h3>}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
