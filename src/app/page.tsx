@@ -78,7 +78,7 @@ export default function KpiPage() {
       const workbook = XLSX.read(data, { type: 'array' });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: true });
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: false });
 
       const captacionHeader = 'edad_gest_inicio_control';
       const controlHeader = 'no_de_identificacion';
@@ -191,12 +191,22 @@ export default function KpiPage() {
         }
 
         // KPI "Numerador Ginecologia"
-        const ginecologiaValue = String(cleanedRow[ginecologiaHeader] || '');
-        const riesgoValue = String(cleanedRow[riesgoHeader] || '');
+        const ginecologiaValue = cleanedRow[ginecologiaHeader];
+        const riesgoValue = String(cleanedRow[riesgoHeader] || '').trim().toLowerCase();
         const invalidGinecoValues = ["sin dato", "sin datos", "si datos"];
 
-        const isAltoRiesgo = riesgoValue.trim().toLowerCase() === "alto riesgo obstetrico";
-        const hasValidGinecoDate = ginecologiaValue.trim() !== "" && !invalidGinecoValues.includes(ginecologiaValue.trim().toLowerCase());
+        const isAltoRiesgo = riesgoValue === "alto riesgo obstetrico";
+        
+        let hasValidGinecoDate = false;
+        if (ginecologiaValue && typeof ginecologiaValue !== 'number') {
+            const ginecoString = String(ginecologiaValue).trim().toLowerCase();
+            if (ginecoString && !invalidGinecoValues.includes(ginecoString)) {
+                hasValidGinecoDate = true;
+            }
+        } else if (ginecologiaValue) { // Handles dates read as numbers/date objects
+             hasValidGinecoDate = true;
+        }
+
 
         if (isAltoRiesgo && hasValidGinecoDate) {
             ginecologiaCount++;
@@ -407,3 +417,5 @@ export default function KpiPage() {
     </div>
   );
 }
+
+    
