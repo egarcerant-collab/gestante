@@ -100,7 +100,7 @@ export default function KpiPage() {
       for (const k in jsonData[0]) {
         firstClean[cleanHeader(k)] = jsonData[0][k];
       }
-
+      
       const controlHeader = pickHeader(firstClean, ["identificacion"]);
       const captacionHeader = pickHeader(firstClean, ["edad", "gest", "inicio", "control"]);
       const vih1Header = pickHeader(firstClean, ["vih", "primer", "tamiz"]);
@@ -131,8 +131,7 @@ export default function KpiPage() {
       let sinDatosOdontologiaCount = 0;
       const totalRegistros = jsonData.length;
       
-      const numeradorGineco = calcularNumeradorGinecologia(jsonData);
-      setGinecologiaResult(numeradorGineco);
+      setGinecologiaResult(calcularNumeradorGinecologia(jsonData));
 
       jsonData.forEach((row: any) => {
         const cleanedRow: { [key: string]: any } = {};
@@ -171,7 +170,7 @@ export default function KpiPage() {
 
         const hbResultadoValue = String(cleanedRow[hbResultadoHeader] || '').toLowerCase().trim();
         const hbFechaValue = cleanedRow[hbFechaHeader];
-        if (hbResultadoValue.includes("sin datos") && (hbFechaValue === undefined || hbFechaValue === "")) {
+        if (hbResultadoValue.includes("sin datos") && (hbFechaValue !== undefined && hbFechaValue !== "")) {
             sinDatosHbCount++;
         }
 
