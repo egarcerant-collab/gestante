@@ -33,6 +33,7 @@ export default function KpiPage() {
   const [resultadoOdontologiaResult, setResultadoOdontologiaResult] = useState<number | null>(null);
   const [ginecologiaResult, setGinecologiaResult] = useState<number | null>(null);
   const [denominadorGinecologiaResult, setDenominadorGinecologiaResult] = useState<number | null>(null);
+  const [porcentajeGinecologiaResult, setPorcentajeGinecologiaResult] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -74,6 +75,7 @@ export default function KpiPage() {
     setResultadoOdontologiaResult(null);
     setGinecologiaResult(null);
     setDenominadorGinecologiaResult(null);
+    setPorcentajeGinecologiaResult(null);
 
     try {
       const response = await fetch(selectedFile);
@@ -133,8 +135,17 @@ export default function KpiPage() {
       let sinDatosOdontologiaCount = 0;
       const totalRegistros = jsonData.length;
       
-      setGinecologiaResult(calcularNumeradorGinecologia(jsonData));
-      setDenominadorGinecologiaResult(calcularDenominadorGinecologia(jsonData));
+      const numeradorGinecologia = calcularNumeradorGinecologia(jsonData);
+      setGinecologiaResult(numeradorGinecologia);
+      
+      const denominadorGinecologia = calcularDenominadorGinecologia(jsonData);
+      setDenominadorGinecologiaResult(denominadorGinecologia);
+      
+      if (denominadorGinecologia > 0) {
+        setPorcentajeGinecologiaResult((numeradorGinecologia / denominadorGinecologia) * 100);
+      } else {
+        setPorcentajeGinecologiaResult(0);
+      }
 
       jsonData.forEach((row: any) => {
         const cleanedRow: { [key: string]: any } = {};
@@ -326,7 +337,7 @@ export default function KpiPage() {
         { title: "Resultado Odontología", value: resultadoOdontologiaResult, isPercentage: true, description: "Porcentaje de consulta de odontología." },
       ]
     }
-  ]
+  ];
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-gray-100 dark:bg-gray-900">
@@ -409,8 +420,22 @@ export default function KpiPage() {
                 </Alert>
                </div>
             )}
+            {porcentajeGinecologiaResult !== null && (
+              <div className="mt-4 w-full">
+                <Alert>
+                  <Terminal className="h-4 w-4" />
+                  <AlertTitle>Porcentaje Cobertura Ginecología</AlertTitle>
+                  <AlertDescription>
+                    <p className="text-2xl font-bold">{porcentajeGinecologiaResult.toFixed(2)}%</p>
+                    <p className="text-sm text-muted-foreground">Porcentaje de gestantes de alto riesgo con consulta de ginecología.</p>
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
         </CardFooter>
       </Card>
     </div>
   );
 }
+
+    
