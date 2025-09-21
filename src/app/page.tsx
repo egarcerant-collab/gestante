@@ -129,7 +129,7 @@ export default function KpiPage() {
         
         // KPI "Captación Oportuna"
         const captacionValue = cleanedRow[captacionHeader];
-        if (captacionValue !== undefined && typeof captacionValue === 'number' && captacionValue < 10) {
+        if (captacionValue !== undefined && captacionValue !== "" && !isNaN(parseFloat(captacionValue)) && parseFloat(captacionValue) < 10) {
           captacionCount++;
         }
 
@@ -200,7 +200,7 @@ export default function KpiPage() {
         let hasValidGinecoDate = false;
         if (ginecologiaValue) { 
             const ginecoString = String(ginecologiaValue).trim().toLowerCase();
-            if (!invalidGinecoValues.includes(ginecoString)) {
+            if (!invalidGinecoValues.includes(ginecoString) && ginecoString !== '') {
                 hasValidGinecoDate = true;
             }
         }
