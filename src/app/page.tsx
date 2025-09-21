@@ -118,6 +118,11 @@ export default function KpiPage() {
         return;
       }
       
+      const pickHeader = (rowObj: Record<string, any>, includes: string[]) => {
+        const keys = Object.keys(rowObj);
+        return keys.find(k => includes.every(frag => k.includes(frag))) || "";
+      };
+      
       const firstClean: any = {};
       const originalHeaders: Record<string, string> = {};
       for (const k in jsonData[0]) {
@@ -152,11 +157,6 @@ export default function KpiPage() {
         setMunicipalities(allMunicipalities);
       }
       
-      const pickHeader = (rowObj: Record<string, any>, includes: string[]) => {
-        const keys = Object.keys(rowObj);
-        return keys.find(k => includes.every(frag => k.includes(frag))) || "";
-      };
-
       const filteredData = jsonData.filter(row => {
           const rowDept = String(row[departmentHeaderRaw] || '').trim().toUpperCase();
           const rowMuni = String(row[municipalityHeaderRaw] || '').trim().toUpperCase();
