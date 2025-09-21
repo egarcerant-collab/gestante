@@ -14,6 +14,7 @@ declare var XLSX: any;
 export default function KpiPage() {
   const [selectedFile, setSelectedFile] = useState<string>("");
   const [kpiResult, setKpiResult] = useState<number | null>(null);
+  const [gestantesControlResult, setGestantesControlResult] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -28,6 +29,7 @@ export default function KpiPage() {
     setIsLoading(true);
     setError(null);
     setKpiResult(null);
+    setGestantesControlResult(null);
 
     try {
       const response = await fetch(selectedFile);
@@ -41,8 +43,10 @@ export default function KpiPage() {
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: true });
 
-      const headerToFind = 'edad_gest_inicio_control';
-      let count = 0;
+      const captacionHeader = 'edad_gest_inicio_control';
+      const controlHeader = 'no_de_identificacion';
+      let captacionCount = 0;
+      let controlCount = 0;
 
       jsonData.forEach((row: any) => {
         const cleanedRow: { [key: string]: any } = {};
@@ -50,17 +54,23 @@ export default function KpiPage() {
             cleanedRow[cleanHeader(key)] = row[key];
         }
 
-        const value = cleanedRow[headerToFind];
-        if (value !== undefined && typeof value === 'number' && value < 10) {
-          count++;
+        const captacionValue = cleanedRow[captacionHeader];
+        if (captacionValue !== undefined && typeof captacionValue === 'number' && captacionValue < 10) {
+          captacionCount++;
+        }
+        
+        const controlValue = cleanedRow[controlHeader];
+        if (controlValue !== undefined && controlValue !== "") {
+            controlCount++;
         }
       });
       
-      setKpiResult(count);
+      setKpiResult(captacionCount);
+      setGestantesControlResult(controlCount);
 
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Ocurrió un error al leer o procesar el archivo. Asegúrate de que el formato sea correcto y que la columna 'Edad_Gest_Inicio_Control' exista.");
+      setError(err.message || "Ocurrió un error al leer o procesar el archivo. Asegúrate de que el formato sea correcto y que las columnas necesarias existan.");
     } finally {
       setIsLoading(false);
     }
@@ -75,9 +85,9 @@ export default function KpiPage() {
     <div className="flex min-h-screen w-full items-center justify-center bg-gray-100 dark:bg-gray-900">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Cálculo de KPI: Captación Oportuna</CardTitle>
+          <CardTitle>Cálculo de KPIs de Gestantes</CardTitle>
           <CardDescription>
-            Calcula el número de gestantes con captación oportuna (Edad Gestacional de Inicio de Control &lt; 10) desde un archivo Excel.
+            Calcula los KPIs de "Captación Oportuna" y "Gestantes en Control" desde un archivo Excel.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
@@ -94,7 +104,7 @@ export default function KpiPage() {
             </Select>
           </div>
           <Button onClick={calculateKpi} className="w-full" disabled={isLoading || !selectedFile}>
-            {isLoading ? "Calculando..." : "Calcular KPI"}
+            {isLoading ? "Calculando..." : "Calcular KPIs"}
           </Button>
         </CardContent>
         <CardFooter className="flex flex-col items-start gap-4">
@@ -110,9 +120,20 @@ export default function KpiPage() {
           {kpiResult !== null && (
              <Alert>
                 <Terminal className="h-4 w-4" />
-                <AlertTitle>Resultado del KPI</AlertTitle>
+                <AlertTitle>Resultado: Captación Oportuna</AlertTitle>
                 <AlertDescription>
-                    <p className="text-2xl font-bold">Captación Oportuna: {kpiResult}</p>
+                    <p className="text-2xl font-bold">{kpiResult}</p>
+                    <p className="text-sm text-muted-foreground">Gestantes con control antes de la semana 10.</p>
+                </AlertDescription>
+            </Alert>
+          )}
+          {gestantesControlResult !== null && (
+             <Alert>
+                <Terminal className="h-4 w-4" />
+                <AlertTitle>Resultado: Gestantes en Control</AlertTitle>
+                <AlertDescription>
+                    <p className="text-2xl font-bold">{gestantesControlResult}</p>
+                    <p className="text-sm text-muted-foreground">Total de gestantes registradas.</p>
                 </AlertDescription>
             </Alert>
           )}
