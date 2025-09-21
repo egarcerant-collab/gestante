@@ -72,8 +72,8 @@ export default function KpiPage() {
       setKpiResult(captacionCount);
       setGestantesControlResult(controlCount);
 
-      if (controlCount > 0) {
-        setControlPercentageResult((captacionCount / controlCount) * 100);
+      if (captacionCount > 0) {
+        setControlPercentageResult((controlCount / captacionCount) * 100);
       } else {
         setControlPercentageResult(0);
       }
@@ -154,7 +154,7 @@ export default function KpiPage() {
                     <AlertTitle>Control de Gestantes</AlertTitle>
                     <AlertDescription>
                         <p className="text-2xl font-bold">{controlPercentageResult.toFixed(2)}%</p>
-                        <p className="text-sm text-muted-foreground">Porcentaje de captación oportuna.</p>
+                        <p className="text-sm text-muted-foreground">Porcentaje de control.</p>
                     </AlertDescription>
                 </Alert>
             )}
