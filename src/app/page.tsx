@@ -192,10 +192,10 @@ export default function KpiPage() {
 
         // KPI "Numerador Ginecologia"
         const ginecologiaValue = String(cleanedRow[ginecologiaHeader] || '').toLowerCase().trim();
-        const riesgoValue = String(cleanedRow[riesgoHeader] || '');
+        const riesgoValue = String(cleanedRow[riesgoHeader] || '').toLowerCase();
         const invalidGinecoValues = ["sin dato", "sin datos", "si datos"];
 
-        if (riesgoValue === "Alto Riesgo Obstétrico" && 
+        if (riesgoValue === "alto riesgo obstétrico" && 
             ginecologiaValue && 
             !invalidGinecoValues.includes(ginecologiaValue)) {
             ginecologiaCount++;
@@ -406,3 +406,5 @@ export default function KpiPage() {
     </div>
   );
 }
+
+    
