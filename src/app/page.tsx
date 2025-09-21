@@ -18,6 +18,8 @@ export default function KpiPage() {
   const [controlPercentageResult, setControlPercentageResult] = useState<number | null>(null);
   const [examenesVihCompletosResult, setExamenesVihCompletosResult] = useState<number | null>(null);
   const [resultadoTamizajeVihResult, setResultadoTamizajeVihResult] = useState<number | null>(null);
+  const [examenesSifilisCompletosResult, setExamenesSifilisCompletosResult] = useState<number | null>(null);
+  const [resultadoTamizajeSifilisResult, setResultadoTamizajeSifilisResult] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -36,6 +38,9 @@ export default function KpiPage() {
     setControlPercentageResult(null);
     setExamenesVihCompletosResult(null);
     setResultadoTamizajeVihResult(null);
+    setExamenesSifilisCompletosResult(null);
+    setResultadoTamizajeSifilisResult(null);
+
 
     try {
       const response = await fetch(selectedFile);
@@ -54,10 +59,14 @@ export default function KpiPage() {
       const vih1Header = 'pruebas_de_tamizaje_para_vih_resultado_primer_tamizaje_prueba_de_vih_';
       const vih2Header = 'resultado_segundo_tamizaje_prueba_de_vih';
       const vih3Header = 'pruebas_de_tamizaje_para_vih_fecha_toma_prueba_vih_tercer_tamizaje';
+      const sifilis1Header = 'pruebas_de_tamizaje_para_sifilis_resultado_primera_prueba_treponemica_rapida_sifilis';
+      const sifilis2Header = 'pruebas_de_tamizaje_para_sifilis_resultado_segunda_prueba_treponemica_rapida_sifilis';
+      const sifilis3Header = 'pruebas_de_tamizaje_para_sifilis_resultado_tercera_prueba_treponemica_rapida_sifilis';
 
       let captacionCount = 0;
       let controlCount = 0;
       let sinDatosVihCount = 0;
+      let sinDatosSifilisCount = 0;
       const totalRegistros = jsonData.length;
 
 
@@ -87,10 +96,22 @@ export default function KpiPage() {
         if (vih1Value.includes("sin datos") && vih2Value.includes("sin datos") && vih3Value.includes("sin datos")) {
           sinDatosVihCount++;
         }
+
+        // KPI "Examenes_Sifilis_Completos"
+        const sif1Value = String(cleanedRow[sifilis1Header] || '').toLowerCase().trim();
+        const sif2Value = String(cleanedRow[sifilis2Header] || '').toLowerCase().trim();
+        const sif3Value = String(cleanedRow[sifilis3Header] || '').toLowerCase().trim();
+        
+        if (sif1Value.includes("sin datos") && sif2Value.includes("sin datos") && sif3Value.includes("sin datos")) {
+            sinDatosSifilisCount++;
+        }
       });
       
       const examenesVihCompletos = totalRegistros - sinDatosVihCount;
       setExamenesVihCompletosResult(examenesVihCompletos);
+
+      const examenesSifilisCompletos = totalRegistros - sinDatosSifilisCount;
+      setExamenesSifilisCompletosResult(examenesSifilisCompletos);
 
       setKpiResult(captacionCount);
       setGestantesControlResult(controlCount);
@@ -98,9 +119,11 @@ export default function KpiPage() {
       if (controlCount > 0) {
         setControlPercentageResult((captacionCount / controlCount) * 100);
         setResultadoTamizajeVihResult((examenesVihCompletos / controlCount) * 100);
+        setResultadoTamizajeSifilisResult((examenesSifilisCompletos / controlCount) * 100);
       } else {
         setControlPercentageResult(0);
         setResultadoTamizajeVihResult(0);
+        setResultadoTamizajeSifilisResult(0);
       }
 
     } catch (err: any) {
@@ -212,6 +235,38 @@ export default function KpiPage() {
                     <AlertDescription>
                         <p className="text-2xl font-bold">{resultadoTamizajeVihResult.toFixed(2)}%</p>
                         <p className="text-sm text-muted-foreground">Porcentaje de tamizaje VIH.</p>
+                    </AlertDescription>
+                </Alert>
+            )}
+          </div>
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mt-4">
+            {gestantesControlResult !== null && (
+               <Alert>
+                  <Terminal className="h-4 w-4" />
+                  <AlertTitle>Gestantes en Control</AlertTitle>
+                  <AlertDescription>
+                      <p className="text-2xl font-bold">{gestantesControlResult}</p>
+                      <p className="text-sm text-muted-foreground">Total de gestantes registradas.</p>
+                  </AlertDescription>
+              </Alert>
+            )}
+            {examenesSifilisCompletosResult !== null && (
+               <Alert>
+                  <Terminal className="h-4 w-4" />
+                  <AlertTitle>Exámenes Sífilis Completos</AlertTitle>
+                  <AlertDescription>
+                      <p className="text-2xl font-bold">{examenesSifilisCompletosResult}</p>
+                      <p className="text-sm text-muted-foreground">Gestantes con al menos 1 tamizaje Sífilis.</p>
+                  </AlertDescription>
+              </Alert>
+            )}
+            {resultadoTamizajeSifilisResult !== null && (
+                <Alert>
+                    <Terminal className="h-4 w-4" />
+                    <AlertTitle>Resultado Tamizaje Sífilis</AlertTitle>
+                    <AlertDescription>
+                        <p className="text-2xl font-bold">{resultadoTamizajeSifilisResult.toFixed(2)}%</p>
+                        <p className="text-sm text-muted-foreground">Porcentaje de tamizaje Sífilis.</p>
                     </AlertDescription>
                 </Alert>
             )}
