@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Terminal } from 'lucide-react';
-import { calcularNumeradorGinecologia } from '@/lib/kpi-helpers';
+import { calcularNumeradorGinecologia, calcularDenominadorGinecologia } from '@/lib/kpi-helpers';
 
 export default function KpiPage() {
   const [selectedFile, setSelectedFile] = useState<string>("");
@@ -120,7 +120,6 @@ export default function KpiPage() {
       const eco3Header = pickHeader(firstClean, ["ecografia", "otras"]);
       const nutricionHeader = pickHeader(firstClean, ["nutricion"]);
       const odontologiaHeader = pickHeader(firstClean, ["odontolog"]);
-      const riesgoHeader = pickHeader(firstClean, ["clasificacion", "riesgo"]);
 
       let captacionCount = 0;
       let controlCount = 0;
@@ -132,10 +131,10 @@ export default function KpiPage() {
       let sinDatosEcografiaCount = 0;
       let sinDatosNutricionCount = 0;
       let sinDatosOdontologiaCount = 0;
-      let denominadorGinecologiaCount = 0;
       const totalRegistros = jsonData.length;
       
       setGinecologiaResult(calcularNumeradorGinecologia(jsonData));
+      setDenominadorGinecologiaResult(calcularDenominadorGinecologia(jsonData));
 
       jsonData.forEach((row: any) => {
         const cleanedRow: { [key: string]: any } = {};
@@ -199,11 +198,6 @@ export default function KpiPage() {
         if (odontologiaValue.includes("sin datos")) {
             sinDatosOdontologiaCount++;
         }
-
-        const riesgoValue = cleanedRow[riesgoHeader];
-        if (String(riesgoValue || '').trim().toLowerCase() === "alto riesgo obstetrico") {
-            denominadorGinecologiaCount++;
-        }
       });
       
       setKpiResult(captacionCount);
@@ -233,8 +227,6 @@ export default function KpiPage() {
       const odontologiaValidos = totalRegistros - sinDatosOdontologiaCount;
       setOdontologiaResult(odontologiaValidos);
       
-      setDenominadorGinecologiaResult(denominadorGinecologiaCount);
-
       if (controlCount > 0) {
         setControlPercentageResult((captacionCount / controlCount) * 100);
         setResultadoTamizajeVihResult((examenesVihCompletos / controlCount) * 100);
@@ -334,7 +326,7 @@ export default function KpiPage() {
         { title: "Resultado Odontología", value: resultadoOdontologiaResult, isPercentage: true, description: "Porcentaje de consulta de odontología." },
       ]
     }
-  ];
+  ]
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-gray-100 dark:bg-gray-900">
