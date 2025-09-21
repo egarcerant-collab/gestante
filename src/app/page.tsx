@@ -54,11 +54,13 @@ export default function KpiPage() {
             cleanedRow[cleanHeader(key)] = row[key];
         }
 
+        // KPI "Captación Oportuna"
         const captacionValue = cleanedRow[captacionHeader];
         if (captacionValue !== undefined && typeof captacionValue === 'number' && captacionValue < 10) {
           captacionCount++;
         }
         
+        // KPI "Gestantes en Control"
         const controlValue = cleanedRow[controlHeader];
         if (controlValue !== undefined && controlValue !== "") {
             controlCount++;
