@@ -32,6 +32,7 @@ export default function KpiPage() {
   const [resultadoNutricionResult, setResultadoNutricionResult] = useState<number | null>(null);
   const [odontologiaResult, setOdontologiaResult] = useState<number | null>(null);
   const [resultadoOdontologiaResult, setResultadoOdontologiaResult] = useState<number | null>(null);
+  const [ginecologiaResult, setGinecologiaResult] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -64,6 +65,7 @@ export default function KpiPage() {
     setResultadoNutricionResult(null);
     setOdontologiaResult(null);
     setResultadoOdontologiaResult(null);
+    setGinecologiaResult(null);
 
 
     try {
@@ -95,6 +97,9 @@ export default function KpiPage() {
       const eco3Header = 'ecografia_obstetrica_otras_ecografias';
       const nutricionHeader = 'atencion_especializada_escriba_las_fechas_ddmmaa_de_consultas_realizadas_por_especialistas_fecha_consulta_nutricion';
       const odontologiaHeader = 'fecha_consulta_odontologica';
+      const ginecologiaHeader = 'atencion_especializada_escriba_las_fechas_ddmmaa_de_consultas_realizadas_por_especialistas_fecha_primera_consulta_ginecologia';
+      const riesgoHeader = 'clasificacion_del_riesgo';
+
 
       let captacionCount = 0;
       let controlCount = 0;
@@ -106,6 +111,7 @@ export default function KpiPage() {
       let sinDatosEcografiaCount = 0;
       let sinDatosNutricionCount = 0;
       let sinDatosOdontologiaCount = 0;
+      let ginecologiaCount = 0;
       const totalRegistros = jsonData.length;
 
 
@@ -183,6 +189,17 @@ export default function KpiPage() {
         if (odontologiaValue.includes("sin datos")) {
             sinDatosOdontologiaCount++;
         }
+
+        // KPI "Numerador Ginecologia"
+        const ginecologiaValue = String(cleanedRow[ginecologiaHeader] || '').toLowerCase().trim();
+        const riesgoValue = String(cleanedRow[riesgoHeader] || '');
+        const invalidGinecoValues = ["sin dato", "sin datos", "si datos"];
+
+        if (riesgoValue === "Alto Riesgo Obstétrico" && 
+            ginecologiaValue && 
+            !invalidGinecoValues.includes(ginecologiaValue)) {
+            ginecologiaCount++;
+        }
       });
       
       const examenesVihCompletos = totalRegistros - sinDatosVihCount;
@@ -208,6 +225,8 @@ export default function KpiPage() {
 
       const odontologiaValidos = totalRegistros - sinDatosOdontologiaCount;
       setOdontologiaResult(odontologiaValidos);
+
+      setGinecologiaResult(ginecologiaCount);
 
       setKpiResult(captacionCount);
       setGestantesControlResult(controlCount);
@@ -247,6 +266,72 @@ export default function KpiPage() {
     setError(null); 
   };
 
+  const kpiGroups = [
+    {
+      kpis: [
+        { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
+        { title: "Captación Oportuna", value: kpiResult, description: "Gestantes con control antes de la semana 10." },
+        { title: "Control de Gestantes", value: controlPercentageResult, isPercentage: true, description: "Porcentaje de control." },
+      ]
+    },
+    {
+      kpis: [
+        { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
+        { title: "Exámenes VIH Completos", value: examenesVihCompletosResult, description: "Gestantes con al menos 1 tamizaje VIH." },
+        { title: "Resultado Tamizaje VIH", value: resultadoTamizajeVihResult, isPercentage: true, description: "Porcentaje de tamizaje VIH." },
+      ]
+    },
+    {
+      kpis: [
+        { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
+        { title: "Exámenes Sífilis Completos", value: examenesSifilisCompletosResult, description: "Gestantes con al menos 1 tamizaje Sífilis." },
+        { title: "Resultado Tamizaje Sífilis", value: resultadoTamizajeSifilisResult, isPercentage: true, description: "Porcentaje de tamizaje Sífilis." },
+      ]
+    },
+    {
+      kpis: [
+        { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
+        { title: "Toxoplasma Válidos", value: toxoplasmaValidosResult, description: "Gestantes con tamizaje Toxoplasma válido." },
+        { title: "Resultado de Toxoplasma", value: resultadoToxoplasmaResult, isPercentage: true, description: "Porcentaje de tamizaje Toxoplasma." },
+      ]
+    },
+    {
+      kpis: [
+        { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
+        { title: "Exámenes HB Completos", value: examenesHbCompletosResult, description: "Gestantes con tamizaje Hepatitis B válido." },
+        { title: "Resultado Tamizaje HB", value: resultadoTamizajeHbResult, isPercentage: true, description: "Porcentaje de tamizaje Hepatitis B." },
+      ]
+    },
+    {
+      kpis: [
+        { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
+        { title: "Chagas Resultados Válidos", value: chagasResultadosValidosResult, description: "Gestantes con tamizaje de Chagas válido." },
+        { title: "Resultado Chagas", value: resultadoChagasResult, isPercentage: true, description: "Porcentaje de tamizaje de Chagas." },
+      ]
+    },
+    {
+      kpis: [
+        { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
+        { title: "Ecografías Válidas", value: ecografiasValidasResult, description: "Gestantes con ecografías válidas." },
+        { title: "Resultado Ecografías", value: resultadoEcografiasResult, isPercentage: true, description: "Porcentaje de ecografías." },
+      ]
+    },
+    {
+      kpis: [
+        { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
+        { title: "Nutrición", value: nutricionResult, description: "Gestantes con consulta de nutrición." },
+        { title: "Resultado Nutrición", value: resultadoNutricionResult, isPercentage: true, description: "Porcentaje de consulta de nutrición." },
+      ]
+    },
+     {
+      kpis: [
+        { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
+        { title: "Odontología", value: odontologiaResult, description: "Gestantes con consulta de odontología." },
+        { title: "Resultado Odontología", value: resultadoOdontologiaResult, isPercentage: true, description: "Porcentaje de consulta de odontología." },
+      ]
+    }
+  ];
+
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-gray-100 dark:bg-gray-900">
       <Card className="w-full max-w-4xl">
@@ -283,297 +368,41 @@ export default function KpiPage() {
               </AlertDescription>
             </Alert>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-            {gestantesControlResult !== null && (
-               <Alert>
-                  <Terminal className="h-4 w-4" />
-                  <AlertTitle>Resultado: Gestantes en Control</AlertTitle>
-                  <AlertDescription>
-                      <p className="text-2xl font-bold">{gestantesControlResult}</p>
-                      <p className="text-sm text-muted-foreground">Total de gestantes registradas.</p>
-                  </AlertDescription>
-              </Alert>
-            )}
-            {kpiResult !== null && (
-               <Alert>
-                  <Terminal className="h-4 w-4" />
-                  <AlertTitle>Resultado: Captación Oportuna</AlertTitle>
-                  <AlertDescription>
-                      <p className="text-2xl font-bold">{kpiResult}</p>
-                      <p className="text-sm text-muted-foreground">Gestantes con control antes de la semana 10.</p>
-                  </AlertDescription>
-              </Alert>
-            )}
-            {controlPercentageResult !== null && (
+
+          {kpiGroups.map((group, index) => (
+            <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+              {group.kpis.map((kpi, kpiIndex) => {
+                if (kpi.value === null) return null;
+                return (
+                  <Alert key={kpiIndex}>
+                    <Terminal className="h-4 w-4" />
+                    <AlertTitle>{kpi.title}</AlertTitle>
+                    <AlertDescription>
+                      <p className="text-2xl font-bold">
+                        {kpi.isPercentage ? `${kpi.value.toFixed(2)}%` : kpi.value}
+                      </p>
+                      <p className="text-sm text-muted-foreground">{kpi.description}</p>
+                    </AlertDescription>
+                  </Alert>
+                );
+              })}
+            </div>
+          ))}
+
+           {ginecologiaResult !== null && (
+               <div className="mt-4 w-full">
                 <Alert>
                     <Terminal className="h-4 w-4" />
-                    <AlertTitle>Control de Gestantes</AlertTitle>
+                    <AlertTitle>Numerador Ginecología</AlertTitle>
                     <AlertDescription>
-                        <p className="text-2xl font-bold">{controlPercentageResult.toFixed(2)}%</p>
-                        <p className="text-sm text-muted-foreground">Porcentaje de control.</p>
+                        <p className="text-2xl font-bold">{ginecologiaResult}</p>
+                        <p className="text-sm text-muted-foreground">Gestantes de alto riesgo con consulta de ginecología válida.</p>
                     </AlertDescription>
                 </Alert>
+               </div>
             )}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mt-4">
-            {gestantesControlResult !== null && (
-               <Alert>
-                  <Terminal className="h-4 w-4" />
-                  <AlertTitle>Gestantes en Control</AlertTitle>
-                  <AlertDescription>
-                      <p className="text-2xl font-bold">{gestantesControlResult}</p>
-                      <p className="text-sm text-muted-foreground">Total de gestantes registradas.</p>
-                  </AlertDescription>
-              </Alert>
-            )}
-            {examenesVihCompletosResult !== null && (
-               <Alert>
-                  <Terminal className="h-4 w-4" />
-                  <AlertTitle>Exámenes VIH Completos</AlertTitle>
-                  <AlertDescription>
-                      <p className="text-2xl font-bold">{examenesVihCompletosResult}</p>
-                      <p className="text-sm text-muted-foreground">Gestantes con al menos 1 tamizaje VIH.</p>
-                  </AlertDescription>
-              </Alert>
-            )}
-            {resultadoTamizajeVihResult !== null && (
-                <Alert>
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Resultado Tamizaje VIH</AlertTitle>
-                    <AlertDescription>
-                        <p className="text-2xl font-bold">{resultadoTamizajeVihResult.toFixed(2)}%</p>
-                        <p className="text-sm text-muted-foreground">Porcentaje de tamizaje VIH.</p>
-                    </AlertDescription>
-                </Alert>
-            )}
-          </div>
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mt-4">
-            {gestantesControlResult !== null && (
-               <Alert>
-                  <Terminal className="h-4 w-4" />
-                  <AlertTitle>Gestantes en Control</AlertTitle>
-                  <AlertDescription>
-                      <p className="text-2xl font-bold">{gestantesControlResult}</p>
-                      <p className="text-sm text-muted-foreground">Total de gestantes registradas.</p>
-                  </AlertDescription>
-              </Alert>
-            )}
-            {examenesSifilisCompletosResult !== null && (
-               <Alert>
-                  <Terminal className="h-4 w-4" />
-                  <AlertTitle>Exámenes Sífilis Completos</AlertTitle>
-                  <AlertDescription>
-                      <p className="text-2xl font-bold">{examenesSifilisCompletosResult}</p>
-                      <p className="text-sm text-muted-foreground">Gestantes con al menos 1 tamizaje Sífilis.</p>
-                  </AlertDescription>
-              </Alert>
-            )}
-            {resultadoTamizajeSifilisResult !== null && (
-                <Alert>
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Resultado Tamizaje Sífilis</AlertTitle>
-                    <AlertDescription>
-                        <p className="text-2xl font-bold">{resultadoTamizajeSifilisResult.toFixed(2)}%</p>
-                        <p className="text-sm text-muted-foreground">Porcentaje de tamizaje Sífilis.</p>
-                    </AlertDescription>
-                </Alert>
-            )}
-          </div>
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mt-4">
-            {gestantesControlResult !== null && (
-               <Alert>
-                  <Terminal className="h-4 w-4" />
-                  <AlertTitle>Gestantes en Control</AlertTitle>
-                  <AlertDescription>
-                      <p className="text-2xl font-bold">{gestantesControlResult}</p>
-                      <p className="text-sm text-muted-foreground">Total de gestantes registradas.</p>
-                  </AlertDescription>
-              </Alert>
-            )}
-            {toxoplasmaValidosResult !== null && (
-               <Alert>
-                  <Terminal className="h-4 w-4" />
-                  <AlertTitle>Toxoplasma Válidos</AlertTitle>
-                  <AlertDescription>
-                      <p className="text-2xl font-bold">{toxoplasmaValidosResult}</p>
-                      <p className="text-sm text-muted-foreground">Gestantes con tamizaje Toxoplasma válido.</p>
-                  </AlertDescription>
-              </Alert>
-            )}
-            {resultadoToxoplasmaResult !== null && (
-                <Alert>
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Resultado de Toxoplasma</AlertTitle>
-                    <AlertDescription>
-                        <p className="text-2xl font-bold">{resultadoToxoplasmaResult.toFixed(2)}%</p>
-                        <p className="text-sm text-muted-foreground">Porcentaje de tamizaje Toxoplasma.</p>
-                    </AlertDescription>
-                </Alert>
-            )}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mt-4">
-            {gestantesControlResult !== null && (
-               <Alert>
-                  <Terminal className="h-4 w-4" />
-                  <AlertTitle>Gestantes en Control</AlertTitle>
-                  <AlertDescription>
-                      <p className="text-2xl font-bold">{gestantesControlResult}</p>
-                      <p className="text-sm text-muted-foreground">Total de gestantes registradas.</p>
-                  </AlertDescription>
-              </Alert>
-            )}
-            {examenesHbCompletosResult !== null && (
-               <Alert>
-                  <Terminal className="h-4 w-4" />
-                  <AlertTitle>Exámenes HB Completos</AlertTitle>
-                  <AlertDescription>
-                      <p className="text-2xl font-bold">{examenesHbCompletosResult}</p>
-                      <p className="text-sm text-muted-foreground">Gestantes con tamizaje Hepatitis B válido.</p>
-                  </AlertDescription>
-              </Alert>
-            )}
-            {resultadoTamizajeHbResult !== null && (
-                <Alert>
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Resultado Tamizaje HB</AlertTitle>
-                    <AlertDescription>
-                        <p className="text-2xl font-bold">{resultadoTamizajeHbResult.toFixed(2)}%</p>
-                        <p className="text-sm text-muted-foreground">Porcentaje de tamizaje Hepatitis B.</p>
-                    </AlertDescription>
-                </Alert>
-            )}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mt-4">
-            {gestantesControlResult !== null && (
-               <Alert>
-                  <Terminal className="h-4 w-4" />
-                  <AlertTitle>Gestantes en Control</AlertTitle>
-                  <AlertDescription>
-                      <p className="text-2xl font-bold">{gestantesControlResult}</p>
-                      <p className="text-sm text-muted-foreground">Total de gestantes registradas.</p>
-                  </AlertDescription>
-              </Alert>
-            )}
-            {chagasResultadosValidosResult !== null && (
-               <Alert>
-                  <Terminal className="h-4 w-4" />
-                  <AlertTitle>Chagas Resultados Válidos</AlertTitle>
-                  <AlertDescription>
-                      <p className="text-2xl font-bold">{chagasResultadosValidosResult}</p>
-                      <p className="text-sm text-muted-foreground">Gestantes con tamizaje de Chagas válido.</p>
-                  </AlertDescription>
-              </Alert>
-            )}
-            {resultadoChagasResult !== null && (
-                <Alert>
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Resultado Chagas</AlertTitle>
-                    <AlertDescription>
-                        <p className="text-2xl font-bold">{resultadoChagasResult.toFixed(2)}%</p>
-                        <p className="text-sm text-muted-foreground">Porcentaje de tamizaje de Chagas.</p>
-                    </AlertDescription>
-                </Alert>
-            )}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mt-4">
-            {gestantesControlResult !== null && (
-                <Alert>
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Gestantes en Control</AlertTitle>
-                    <AlertDescription>
-                        <p className="text-2xl font-bold">{gestantesControlResult}</p>
-                        <p className="text-sm text-muted-foreground">Total de gestantes registradas.</p>
-                    </AlertDescription>
-                </Alert>
-            )}
-            {ecografiasValidasResult !== null && (
-                <Alert>
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Ecografías Válidas</AlertTitle>
-                    <AlertDescription>
-                        <p className="text-2xl font-bold">{ecografiasValidasResult}</p>
-                        <p className="text-sm text-muted-foreground">Gestantes con ecografías válidas.</p>
-                    </AlertDescription>
-                </Alert>
-            )}
-            {resultadoEcografiasResult !== null && (
-                <Alert>
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Resultado Ecografías</AlertTitle>
-                    <AlertDescription>
-                        <p className="text-2xl font-bold">{resultadoEcografiasResult.toFixed(2)}%</p>
-                        <p className="text-sm text-muted-foreground">Porcentaje de ecografías.</p>
-                    </AlertDescription>
-                </Alert>
-            )}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mt-4">
-            {gestantesControlResult !== null && (
-                <Alert>
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Gestantes en Control</AlertTitle>
-                    <AlertDescription>
-                        <p className="text-2xl font-bold">{gestantesControlResult}</p>
-                        <p className="text-sm text-muted-foreground">Total de gestantes registradas.</p>
-                    </AlertDescription>
-                </Alert>
-            )}
-            {nutricionResult !== null && (
-                <Alert>
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Nutrición</AlertTitle>
-                    <AlertDescription>
-                        <p className="text-2xl font-bold">{nutricionResult}</p>
-                        <p className="text-sm text-muted-foreground">Gestantes con consulta de nutrición.</p>
-                    </AlertDescription>
-                </Alert>
-            )}
-            {resultadoNutricionResult !== null && (
-                <Alert>
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Resultado Nutrición</AlertTitle>
-                    <AlertDescription>
-                        <p className="text-2xl font-bold">{resultadoNutricionResult.toFixed(2)}%</p>
-                        <p className="text-sm text-muted-foreground">Porcentaje de consulta de nutrición.</p>
-                    </AlertDescription>
-                </Alert>
-            )}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mt-4">
-            {gestantesControlResult !== null && (
-                <Alert>
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Gestantes en Control</AlertTitle>
-                    <AlertDescription>
-                        <p className="text-2xl font-bold">{gestantesControlResult}</p>
-                        <p className="text-sm text-muted-foreground">Total de gestantes registradas.</p>
-                    </AlertDescription>
-                </Alert>
-            )}
-            {odontologiaResult !== null && (
-                <Alert>
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Odontología</AlertTitle>
-                    <AlertDescription>
-                        <p className="text-2xl font-bold">{odontologiaResult}</p>
-                        <p className="text-sm text-muted-foreground">Gestantes con consulta de odontología.</p>
-                    </AlertDescription>
-                </Alert>
-            )}
-            {resultadoOdontologiaResult !== null && (
-                <Alert>
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Resultado Odontología</AlertTitle>
-                    <AlertDescription>
-                        <p className="text-2xl font-bold">{resultadoOdontologiaResult.toFixed(2)}%</p>
-                        <p className="text-sm text-muted-foreground">Porcentaje de consulta de odontología.</p>
-                    </AlertDescription>
-                </Alert>
-            )}
-          </div>
         </CardFooter>
       </Card>
     </div>
   );
-
-    
+}
