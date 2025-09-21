@@ -28,6 +28,8 @@ export default function KpiPage() {
   const [resultadoChagasResult, setResultadoChagasResult] = useState<number | null>(null);
   const [ecografiasValidasResult, setEcografiasValidasResult] = useState<number | null>(null);
   const [resultadoEcografiasResult, setResultadoEcografiasResult] = useState<number | null>(null);
+  const [nutricionResult, setNutricionResult] = useState<number | null>(null);
+  const [resultadoNutricionResult, setResultadoNutricionResult] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -56,6 +58,8 @@ export default function KpiPage() {
     setResultadoChagasResult(null);
     setEcografiasValidasResult(null);
     setResultadoEcografiasResult(null);
+    setNutricionResult(null);
+    setResultadoNutricionResult(null);
 
 
     try {
@@ -85,6 +89,7 @@ export default function KpiPage() {
       const eco1Header = 'ecografia_obstetrica_ecografia_obstetrica_con_translucencia_nucal_106__136';
       const eco2Header = 'ecografia_obstetrica_ecografia_obstetrica_para_la_deteccion_de_anomalias_estructurales_18__23';
       const eco3Header = 'ecografia_obstetrica_otras_ecografias';
+      const nutricionHeader = 'atencion_especializada_escriba_las_fechas_ddmmaa_de_consultas_realizadas_por_especialistas_fecha_consulta_nutricion';
 
       let captacionCount = 0;
       let controlCount = 0;
@@ -94,6 +99,7 @@ export default function KpiPage() {
       let sinDatosHbCount = 0;
       let sinDatosChagasCount = 0;
       let sinDatosEcografiaCount = 0;
+      let sinDatosNutricionCount = 0;
       const totalRegistros = jsonData.length;
 
 
@@ -159,6 +165,12 @@ export default function KpiPage() {
         if (eco1Value.includes("sin datos") && eco2Value.includes("sin datos") && eco3Value.includes("sin datos")) {
             sinDatosEcografiaCount++;
         }
+
+        // KPI "Nutricion"
+        const nutricionValue = String(cleanedRow[nutricionHeader] || '').toLowerCase().trim();
+        if (nutricionValue.includes("sin datos")) {
+            sinDatosNutricionCount++;
+        }
       });
       
       const examenesVihCompletos = totalRegistros - sinDatosVihCount;
@@ -179,6 +191,9 @@ export default function KpiPage() {
       const ecografiasValidas = totalRegistros - sinDatosEcografiaCount;
       setEcografiasValidasResult(ecografiasValidas);
 
+      const nutricionValidos = totalRegistros - sinDatosNutricionCount;
+      setNutricionResult(nutricionValidos);
+
       setKpiResult(captacionCount);
       setGestantesControlResult(controlCount);
 
@@ -190,6 +205,7 @@ export default function KpiPage() {
         setResultadoTamizajeHbResult((examenesHbCompletos / controlCount) * 100);
         setResultadoChagasResult((chagasResultadosValidos / controlCount) * 100);
         setResultadoEcografiasResult((ecografiasValidas / controlCount) * 100);
+        setResultadoNutricionResult((nutricionValidos / controlCount) * 100);
       } else {
         setControlPercentageResult(0);
         setResultadoTamizajeVihResult(0);
@@ -198,6 +214,7 @@ export default function KpiPage() {
         setResultadoTamizajeHbResult(0);
         setResultadoChagasResult(0);
         setResultadoEcografiasResult(0);
+        setResultadoNutricionResult(0);
       }
 
     } catch (err: any) {
@@ -473,8 +490,39 @@ export default function KpiPage() {
                 </Alert>
             )}
           </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mt-4">
+            {gestantesControlResult !== null && (
+                <Alert>
+                    <Terminal className="h-4 w-4" />
+                    <AlertTitle>Gestantes en Control</AlertTitle>
+                    <AlertDescription>
+                        <p className="text-2xl font-bold">{gestantesControlResult}</p>
+                        <p className="text-sm text-muted-foreground">Total de gestantes registradas.</p>
+                    </AlertDescription>
+                </Alert>
+            )}
+            {nutricionResult !== null && (
+                <Alert>
+                    <Terminal className="h-4 w-4" />
+                    <AlertTitle>Nutrición</AlertTitle>
+                    <AlertDescription>
+                        <p className="text-2xl font-bold">{nutricionResult}</p>
+                        <p className="text-sm text-muted-foreground">Gestantes con consulta de nutrición.</p>
+                    </AlertDescription>
+                </Alert>
+            )}
+            {resultadoNutricionResult !== null && (
+                <Alert>
+                    <Terminal className="h-4 w-4" />
+                    <AlertTitle>Resultado Nutrición</AlertTitle>
+                    <AlertDescription>
+                        <p className="text-2xl font-bold">{resultadoNutricionResult.toFixed(2)}%</p>
+                        <p className="text-sm text-muted-foreground">Porcentaje de consulta de nutrición.</p>
+                    </AlertDescription>
+                </Alert>
+            )}
+          </div>
         </CardFooter>
       </Card>
     </div>
   );
-    
