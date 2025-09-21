@@ -314,7 +314,7 @@ export default function KpiPage() {
     {
       kpis: [
         { title: "Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes registradas." },
-        { title: "Chagas Resultados Válidos", value: chagasResultadosValidosResult, description: "Gestantes con tamizaje de Chagas válido." },
+        { "title": "Chagas Resultados Válidos", "value": chagasResultadosValidosResult, "description": "Gestantes con tamizaje de Chagas válido." },
         { title: "Resultado Chagas", value: resultadoChagasResult, isPercentage: true, description: "Porcentaje de tamizaje de Chagas." },
       ]
     },
