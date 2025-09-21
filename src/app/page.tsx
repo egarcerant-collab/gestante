@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Terminal } from 'lucide-react';
 import { calcularNumeradorGinecologia, calcularDenominadorGinecologia } from '@/lib/kpi-helpers';
 
 export default function KpiPage() {
@@ -34,8 +33,15 @@ export default function KpiPage() {
   const [ginecologiaResult, setGinecologiaResult] = useState<number | null>(null);
   const [denominadorGinecologiaResult, setDenominadorGinecologiaResult] = useState<number | null>(null);
   const [porcentajeGinecologiaResult, setPorcentajeGinecologiaResult] = useState<number | null>(null);
+
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [municipalities, setMunicipalities] = useState<string[]>([]);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("");
+  const [selectedMunicipality, setSelectedMunicipality] = useState<string>("");
+
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasCalculated, setHasCalculated] = useState(false);
 
   const cleanHeader = (h: string) =>
     String(h || "")
@@ -76,6 +82,8 @@ export default function KpiPage() {
     setGinecologiaResult(null);
     setDenominadorGinecologiaResult(null);
     setPorcentajeGinecologiaResult(null);
+    setHasCalculated(false);
+
 
     try {
       const response = await fetch(selectedFile);
@@ -87,24 +95,40 @@ export default function KpiPage() {
       const workbook = XLSX.read(data, { type: 'array' });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: false });
+      const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: false });
 
       if (jsonData.length === 0) {
         setError("El archivo está vacío o no tiene el formato correcto.");
         setIsLoading(false);
         return;
       }
-      
+
       const pickHeader = (rowObj: Record<string, any>, includes: string[]) => {
         const keys = Object.keys(rowObj);
         return keys.find(k => includes.every(frag => k.includes(frag))) || "";
       };
-
+      
       const firstClean: any = {};
       for (const k in jsonData[0]) {
         firstClean[cleanHeader(k)] = jsonData[0][k];
       }
+
+      const departmentHeader = pickHeader(firstClean, ["departamento_residencia"]);
+      const municipalityHeader = pickHeader(firstClean, ["municipio_de_residencia"]);
+
+      const allDepartments = [...new Set(jsonData.map(row => row[cleanHeader(departmentHeader)]).filter(Boolean))].sort();
+      const allMunicipalities = [...new Set(jsonData.map(row => row[cleanHeader(municipalityHeader)]).filter(Boolean))].sort();
+      setDepartments(allDepartments);
+      setMunicipalities(allMunicipalities);
       
+      const filteredData = jsonData.filter(row => {
+          const rowDept = row[cleanHeader(departmentHeader)];
+          const rowMuni = row[cleanHeader(municipalityHeader)];
+          const deptMatch = !selectedDepartment || rowDept === selectedDepartment;
+          const muniMatch = !selectedMunicipality || rowMuni === selectedMunicipality;
+          return deptMatch && muniMatch;
+      });
+
       const controlHeader = pickHeader(firstClean, ["identificacion"]);
       const captacionHeader = pickHeader(firstClean, ["edad", "gest", "inicio", "control"]);
       const vih1Header = pickHeader(firstClean, ["vih", "primer", "tamiz"]);
@@ -122,7 +146,7 @@ export default function KpiPage() {
       const eco3Header = pickHeader(firstClean, ["ecografia", "otras"]);
       const nutricionHeader = pickHeader(firstClean, ["nutricion"]);
       const odontologiaHeader = pickHeader(firstClean, ["odontolog"]);
-
+      
       let captacionCount = 0;
       let controlCount = 0;
       let sinDatosVihCount = 0;
@@ -133,21 +157,21 @@ export default function KpiPage() {
       let sinDatosEcografiaCount = 0;
       let sinDatosNutricionCount = 0;
       let sinDatosOdontologiaCount = 0;
-      const totalRegistros = jsonData.length;
-      
-      const numeradorGinecologia = calcularNumeradorGinecologia(jsonData);
+      const totalRegistros = filteredData.length;
+
+      const numeradorGinecologia = calcularNumeradorGinecologia(filteredData);
       setGinecologiaResult(numeradorGinecologia);
-      
-      const denominadorGinecologia = calcularDenominadorGinecologia(jsonData);
+
+      const denominadorGinecologia = calcularDenominadorGinecologia(filteredData);
       setDenominadorGinecologiaResult(denominadorGinecologia);
-      
+
       if (denominadorGinecologia > 0) {
         setPorcentajeGinecologiaResult((numeradorGinecologia / denominadorGinecologia) * 100);
       } else {
         setPorcentajeGinecologiaResult(0);
       }
 
-      jsonData.forEach((row: any) => {
+      filteredData.forEach((row: any) => {
         const cleanedRow: { [key: string]: any } = {};
         for (const key in row) {
             cleanedRow[cleanHeader(key)] = row[key];
@@ -260,6 +284,8 @@ export default function KpiPage() {
         setResultadoOdontologiaResult(0);
       }
 
+      setHasCalculated(true);
+
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Ocurrió un error al leer o procesar el archivo. Asegúrate de que el formato sea correcto y que las columnas necesarias existan.");
@@ -270,7 +296,12 @@ export default function KpiPage() {
 
   const handleFileChange = (value: string) => {
     setSelectedFile(value);
-    setError(null); 
+    setError(null);
+    setHasCalculated(false);
+    setDepartments([]);
+    setMunicipalities([]);
+    setSelectedDepartment("");
+    setSelectedMunicipality("");
   };
 
   const kpiGroups = [
@@ -366,17 +397,55 @@ export default function KpiPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          <div className="grid w-full max-w-sm items-center gap-1.5">
-            <Label htmlFor="excel-file">Selecciona un archivo</Label>
-            <Select onValueChange={handleFileChange} value={selectedFile}>
-              <SelectTrigger id="excel-file">
-                <SelectValue placeholder="Elige un mes..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="/BASES/2025/JULIO.xlsx">Julio 2025</SelectItem>
-                <SelectItem value="/BASES/2025/JUNIO.xlsx">Junio 2025</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid gap-1.5">
+              <Label htmlFor="excel-file">Selecciona un archivo</Label>
+              <Select onValueChange={handleFileChange} value={selectedFile}>
+                <SelectTrigger id="excel-file">
+                  <SelectValue placeholder="Elige un mes..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="/BASES/2025/JULIO.xlsx">Julio 2025</SelectItem>
+                  <SelectItem value="/BASES/2025/JUNIO.xlsx">Junio 2025</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="department-filter">Departamento</Label>
+              <Select
+                onValueChange={setSelectedDepartment}
+                value={selectedDepartment}
+                disabled={departments.length === 0}
+              >
+                <SelectTrigger id="department-filter">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todos</SelectItem>
+                  {departments.map(dept => (
+                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="municipality-filter">Municipio</Label>
+              <Select
+                onValueChange={setSelectedMunicipality}
+                value={selectedMunicipality}
+                disabled={municipalities.length === 0}
+              >
+                <SelectTrigger id="municipality-filter">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todos</SelectItem>
+                  {municipalities.map(muni => (
+                    <SelectItem key={muni} value={muni}>{muni}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <Button onClick={calculateKpi} className="w-full" disabled={isLoading || !selectedFile}>
             {isLoading ? "Calculando..." : "Calcular Indicadores"}
@@ -385,7 +454,6 @@ export default function KpiPage() {
         <CardFooter className="flex flex-col items-start gap-4">
           {error && (
             <Alert variant="destructive">
-              <Terminal className="h-4 w-4" />
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>
                 {error}
@@ -393,7 +461,7 @@ export default function KpiPage() {
             </Alert>
           )}
 
-          {kpiResult !== null && kpiGroups.map((group, index) => (
+          {hasCalculated && kpiGroups.map((group, index) => (
              <div key={index} className="w-full">
               {group.title && <h3 className="text-lg font-semibold mb-2">{group.title}</h3>}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
@@ -419,3 +487,5 @@ export default function KpiPage() {
     </div>
   );
 }
+
+    
