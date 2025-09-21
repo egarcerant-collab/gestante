@@ -117,16 +117,6 @@ export default function KpiPage() {
               </AlertDescription>
             </Alert>
           )}
-          {kpiResult !== null && (
-             <Alert>
-                <Terminal className="h-4 w-4" />
-                <AlertTitle>Resultado: Captación Oportuna</AlertTitle>
-                <AlertDescription>
-                    <p className="text-2xl font-bold">{kpiResult}</p>
-                    <p className="text-sm text-muted-foreground">Gestantes con control antes de la semana 10.</p>
-                </AlertDescription>
-            </Alert>
-          )}
           {gestantesControlResult !== null && (
              <Alert>
                 <Terminal className="h-4 w-4" />
@@ -134,6 +124,16 @@ export default function KpiPage() {
                 <AlertDescription>
                     <p className="text-2xl font-bold">{gestantesControlResult}</p>
                     <p className="text-sm text-muted-foreground">Total de gestantes registradas.</p>
+                </AlertDescription>
+            </Alert>
+          )}
+          {kpiResult !== null && (
+             <Alert>
+                <Terminal className="h-4 w-4" />
+                <AlertTitle>Resultado: Captación Oportuna</AlertTitle>
+                <AlertDescription>
+                    <p className="text-2xl font-bold">{kpiResult}</p>
+                    <p className="text-sm text-muted-foreground">Gestantes con control antes de la semana 10.</p>
                 </AlertDescription>
             </Alert>
           )}
