@@ -119,10 +119,12 @@ export default function KpiPage() {
       const departmentHeaderRaw = originalHeaders[pickHeader(firstClean, ["departamento_residencia"])];
       const municipalityHeaderRaw = originalHeaders[pickHeader(firstClean, ["municipio_de_residencia"])];
 
-      const allDepartments = [...new Set(jsonData.map(row => row[departmentHeaderRaw]).filter(Boolean))].sort();
-      const allMunicipalities = [...new Set(jsonData.map(row => row[municipalityHeaderRaw]).filter(Boolean))].sort();
-      setDepartments(allDepartments);
-      setMunicipalities(allMunicipalities);
+      if (!hasCalculated) {
+        const allDepartments = [...new Set(jsonData.map(row => row[departmentHeaderRaw]).filter(Boolean))].sort();
+        const allMunicipalities = [...new Set(jsonData.map(row => row[municipalityHeaderRaw]).filter(Boolean))].sort();
+        setDepartments(allDepartments);
+        setMunicipalities(allMunicipalities);
+      }
       
       const filteredData = jsonData.filter(row => {
           const rowDept = row[departmentHeaderRaw];
@@ -307,6 +309,12 @@ export default function KpiPage() {
     setSelectedMunicipality("");
   };
 
+  const handleFilterChange = () => {
+     if (hasCalculated) {
+      calculateKpi();
+    }
+  }
+
   const kpiGroups = [
     {
       title: "Indicadores de Captación",
@@ -413,42 +421,46 @@ export default function KpiPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="department-filter">Departamento</Label>
-              <Select
-                onValueChange={(value) => setSelectedDepartment(value === 'todos' ? '' : value)}
-                value={selectedDepartment}
-                disabled={departments.length === 0}
-              >
-                <SelectTrigger id="department-filter">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  {departments.map(dept => (
-                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="municipality-filter">Municipio</Label>
-              <Select
-                onValueChange={(value) => setSelectedMunicipality(value === 'todos' ? '' : value)}
-                value={selectedMunicipality}
-                disabled={municipalities.length === 0}
-              >
-                <SelectTrigger id="municipality-filter">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  {municipalities.map(muni => (
-                    <SelectItem key={muni} value={muni}>{muni}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {hasCalculated && (
+              <>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="department-filter">Departamento</Label>
+                  <Select
+                    onValueChange={(value) => setSelectedDepartment(value === 'todos' ? '' : value)}
+                    value={selectedDepartment}
+                    disabled={departments.length === 0}
+                  >
+                    <SelectTrigger id="department-filter">
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      {departments.map(dept => (
+                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="municipality-filter">Municipio</Label>
+                  <Select
+                    onValueChange={(value) => setSelectedMunicipality(value === 'todos' ? '' : value)}
+                    value={selectedMunicipality}
+                    disabled={municipalities.length === 0}
+                  >
+                    <SelectTrigger id="municipality-filter">
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      {municipalities.map(muni => (
+                        <SelectItem key={muni} value={muni}>{muni}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
           </div>
           <Button onClick={calculateKpi} className="w-full" disabled={isLoading || !selectedFile}>
             {isLoading ? "Calculando..." : "Calcular Indicadores"}
