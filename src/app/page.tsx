@@ -97,7 +97,7 @@ export default function KpiPage() {
       const eco3Header = 'ecografia_obstetrica_otras_ecografias';
       const nutricionHeader = 'atencion_especializada_escriba_las_fechas_ddmmaa_de_consultas_realizadas_por_especialistas_fecha_consulta_nutricion';
       const odontologiaHeader = 'fecha_consulta_odontologica';
-      const ginecologiaHeader = 'atencion_especializada_escriba_las_fechas_ddmmaa_de_consultas_realizadas_por_especialistas_fecha_primera_consulta_ginecologia';
+      const ginecologiaHeader = 'atencion_especializada_escriba_las_fechas_ddmmaa_de_consultas_realizadas_por_especialistas__fecha_primera_consulta_ginecologia';
       const riesgoHeader = 'clasificacion_del_riesgo';
 
 
@@ -195,7 +195,7 @@ export default function KpiPage() {
         const riesgoValue = String(cleanedRow[riesgoHeader] || '');
         const invalidGinecoValues = ["sin dato", "sin datos", "si datos"];
 
-        const isAltoRiesgo = riesgoValue.trim().toLowerCase() === "alto riesgo obstétrico";
+        const isAltoRiesgo = riesgoValue.trim().toLowerCase() === "alto riesgo obstetrico";
         const hasValidGinecoDate = ginecologiaValue.trim() !== "" && !invalidGinecoValues.includes(ginecologiaValue.trim().toLowerCase());
 
         if (isAltoRiesgo && hasValidGinecoDate) {
@@ -407,3 +407,5 @@ export default function KpiPage() {
     </div>
   );
 }
+
+    
