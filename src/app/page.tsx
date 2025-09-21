@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -118,7 +117,7 @@ export default function KpiPage() {
       const eco3Header = pickHeader(firstClean, ["ecografia", "otras"]);
       const nutricionHeader = pickHeader(firstClean, ["nutricion"]);
       const odontologiaHeader = pickHeader(firstClean, ["odontolog"]);
-      const ginecologiaHeader = pickHeader(firstClean, ["fecha","consulta","ginecolog"]);
+      const ginecologiaHeader = pickHeader(firstClean, ["atencion", "especializada", "ginecologia"]);
       const riesgoHeader = pickHeader(firstClean, ["clasificacion", "riesgo"]);
 
       let captacionCount = 0;
@@ -202,7 +201,7 @@ export default function KpiPage() {
         const invalidGinecoValues = ["sin dato", "sin datos", "si datos"];
 
         if (String(riesgoValue || '').trim().toLowerCase() === "alto riesgo obstetrico") {
-          if (ginecologiaValue !== undefined && ginecologiaValue !== "") {
+          if (ginecologiaValue !== undefined && ginecologiaValue !== "" && ginecologiaValue !== null) {
             const ginecoString = String(ginecologiaValue).trim().toLowerCase();
             if (!invalidGinecoValues.includes(ginecoString)) {
               ginecologiaCount++;
