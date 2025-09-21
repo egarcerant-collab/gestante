@@ -198,15 +198,12 @@ export default function KpiPage() {
         const isAltoRiesgo = riesgoValue === "alto riesgo obstetrico";
         
         let hasValidGinecoDate = false;
-        if (ginecologiaValue && typeof ginecologiaValue !== 'number') {
+        if (ginecologiaValue) { // Checks for not null, not undefined, not empty string, not 0
             const ginecoString = String(ginecologiaValue).trim().toLowerCase();
-            if (ginecoString && !invalidGinecoValues.includes(ginecoString)) {
+            if (!invalidGinecoValues.includes(ginecoString)) {
                 hasValidGinecoDate = true;
             }
-        } else if (ginecologiaValue) { // Handles dates read as numbers/date objects
-             hasValidGinecoDate = true;
         }
-
 
         if (isAltoRiesgo && hasValidGinecoDate) {
             ginecologiaCount++;
@@ -417,5 +414,3 @@ export default function KpiPage() {
     </div>
   );
 }
-
-    
