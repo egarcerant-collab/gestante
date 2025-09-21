@@ -32,6 +32,7 @@ export default function KpiPage() {
   const [odontologiaResult, setOdontologiaResult] = useState<number | null>(null);
   const [resultadoOdontologiaResult, setResultadoOdontologiaResult] = useState<number | null>(null);
   const [ginecologiaResult, setGinecologiaResult] = useState<number | null>(null);
+  const [denominadorGinecologiaResult, setDenominadorGinecologiaResult] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -72,6 +73,7 @@ export default function KpiPage() {
     setOdontologiaResult(null);
     setResultadoOdontologiaResult(null);
     setGinecologiaResult(null);
+    setDenominadorGinecologiaResult(null);
 
     try {
       const response = await fetch(selectedFile);
@@ -118,6 +120,7 @@ export default function KpiPage() {
       const eco3Header = pickHeader(firstClean, ["ecografia", "otras"]);
       const nutricionHeader = pickHeader(firstClean, ["nutricion"]);
       const odontologiaHeader = pickHeader(firstClean, ["odontolog"]);
+      const riesgoHeader = pickHeader(firstClean, ["clasificacion", "riesgo"]);
 
       let captacionCount = 0;
       let controlCount = 0;
@@ -129,6 +132,7 @@ export default function KpiPage() {
       let sinDatosEcografiaCount = 0;
       let sinDatosNutricionCount = 0;
       let sinDatosOdontologiaCount = 0;
+      let denominadorGinecologiaCount = 0;
       const totalRegistros = jsonData.length;
       
       setGinecologiaResult(calcularNumeradorGinecologia(jsonData));
@@ -195,6 +199,11 @@ export default function KpiPage() {
         if (odontologiaValue.includes("sin datos")) {
             sinDatosOdontologiaCount++;
         }
+
+        const riesgoValue = cleanedRow[riesgoHeader];
+        if (String(riesgoValue || '').trim().toLowerCase() === "alto riesgo obstetrico") {
+            denominadorGinecologiaCount++;
+        }
       });
       
       setKpiResult(captacionCount);
@@ -223,6 +232,8 @@ export default function KpiPage() {
 
       const odontologiaValidos = totalRegistros - sinDatosOdontologiaCount;
       setOdontologiaResult(odontologiaValidos);
+      
+      setDenominadorGinecologiaResult(denominadorGinecologiaCount);
 
       if (controlCount > 0) {
         setControlPercentageResult((captacionCount / controlCount) * 100);
@@ -390,6 +401,18 @@ export default function KpiPage() {
                     <AlertDescription>
                         <p className="text-2xl font-bold">{ginecologiaResult}</p>
                         <p className="text-sm text-muted-foreground">Gestantes de alto riesgo con consulta de ginecología válida.</p>
+                    </AlertDescription>
+                </Alert>
+               </div>
+            )}
+            {denominadorGinecologiaResult !== null && (
+               <div className="mt-4 w-full">
+                <Alert>
+                    <Terminal className="h-4 w-4" />
+                    <AlertTitle>Denominador Ginecología</AlertTitle>
+                    <AlertDescription>
+                        <p className="text-2xl font-bold">{denominadorGinecologiaResult}</p>
+                        <p className="text-sm text-muted-foreground">Total de gestantes con clasificación de "Alto Riesgo Obstétrico".</p>
                     </AlertDescription>
                 </Alert>
                </div>
