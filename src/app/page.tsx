@@ -88,16 +88,16 @@ export default function KpiPage() {
       const sifilis1Header = 'pruebas_de_tamizaje_para_sifilis_resultado_primera_prueba_treponemica_rapida_sifilis';
       const sifilis2Header = 'pruebas_de_tamizaje_para_sifilis_resultado_segunda_prueba_treponemica_rapida_sifilis';
       const sifilis3Header = 'pruebas_de_tamizaje_para_sifilis_resultado_tercera_prueba_treponemica_rapida_sifilis';
-      const toxoplasmaHeader = 'toxoplasma_igg__igm_resultado_toxoplasma';
+      const toxoplasmaHeader = 'toxoplasma_igg_igm_resultado_toxoplasma';
       const hbResultadoHeader = 'antigeno_de_hepatitis_b_resultado_antigeno_superficie_hepatitis_b';
-      const hbFechaHeader = 'antigeno_de_hepatitis_b_fecha_de_antigeno_superficie__hepatitis_b';
+      const hbFechaHeader = 'antigeno_de_hepatitis_b_fecha_de_antigeno_superficie_hepatitis_b';
       const chagasHeader = 'chagas_resultado_chagas';
-      const eco1Header = 'ecografia_obstetrica_ecografia_obstetrica_con_translucencia_nucal_106__136';
-      const eco2Header = 'ecografia_obstetrica_ecografia_obstetrica_para_la_deteccion_de_anomalias_estructurales_18__23';
+      const eco1Header = 'ecografia_obstetrica_ecografia_obstetrica_con_translucencia_nucal_106_136';
+      const eco2Header = 'ecografia_obstetrica_ecografia_obstetrica_para_la_deteccion_de_anomalias_estructurales_18_23';
       const eco3Header = 'ecografia_obstetrica_otras_ecografias';
       const nutricionHeader = 'atencion_especializada_escriba_las_fechas_ddmmaa_de_consultas_realizadas_por_especialistas_fecha_consulta_nutricion';
       const odontologiaHeader = 'fecha_consulta_odontologica';
-      const ginecologiaHeader = 'atencion_especializada_escriba_las_fechas_ddmmaa_de_consultas_realizadas_por_especialistas__fecha_primera_consulta_ginecologia';
+      const ginecologiaHeader = 'atencion_especializada_escriba_las_fechas_ddmmaa_de_consultas_realizadas_por_especialistas_fecha_primera_consulta_ginecologia';
       const riesgoHeader = 'clasificacion_del_riesgo';
 
 
@@ -407,5 +407,3 @@ export default function KpiPage() {
     </div>
   );
 }
-
-    
