@@ -72,8 +72,8 @@ export default function KpiPage() {
       setKpiResult(captacionCount);
       setGestantesControlResult(controlCount);
 
-      if (captacionCount > 0) {
-        setControlPercentageResult((controlCount / captacionCount) * 100);
+      if (controlCount > 0) {
+        setControlPercentageResult((captacionCount / controlCount) * 100);
       } else {
         setControlPercentageResult(0);
       }
