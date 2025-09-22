@@ -227,7 +227,7 @@ export async function generarInformePDF(
   const pdfMake = (await import("pdfmake/build/pdfmake")).default;
   const vfsFonts = (await import("pdfmake/build/vfs_fonts")).default;
 
-  pdfMake.vfs = vfsFonts.pdfMake.vfs;
+  pdfMake.vfs = vfsFonts;
 
   await registerArialIfAvailable(pdfMake);
 
