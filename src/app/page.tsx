@@ -12,6 +12,7 @@ import { generarInformePDF, InformeDatos, buildDocDefinition } from '@/lib/infor
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import type { KpiResults } from '@/lib/types';
+import { generateRecommendations } from '@/ai/flows/generate-recommendations-flow';
 
 
 export default function KpiPage() {
@@ -405,7 +406,7 @@ export default function KpiPage() {
     setSelectedIps(newIps);
   }
   
-  const prepararDatosParaPdf = (kpiData: KpiResults, ips: string): InformeDatos => {
+  const prepararDatosParaPdf = (kpiData: KpiResults, ips: string, recomendacionesAI?: string[]): InformeDatos => {
     return {
         encabezado: {
             proceso: "Seguimiento a la Gestión del Riesgo en Salud",
@@ -443,7 +444,7 @@ export default function KpiPage() {
             "Actualizar los desenlaces obstétricos (nacimientos, abortos, muertes maternas y perinatales), migrando los casos cerrados a la pestaña correspondiente en la base de datos.",
             "Fortalecer la captación temprana de gestantes, priorizando el ingreso antes de la semana 12 de gestación y registrando las razones de ingreso tardío cuando aplique.",
         ],
-        recomendaciones: [
+        recomendaciones: recomendacionesAI || [
             "Diseñar y aplicar los procesos de evaluación y seguimiento a la ruta materno perinatal.",
             "Implementar las acciones de mejora para el fortalecimiento de la ruta materno perinatal.",
             "Fortalecer la demanda inducida institucional para la captación temprana de la gestante (antes de las 12 semanas) especificar en observaciones el ingreso tardío.",
@@ -459,6 +460,7 @@ export default function KpiPage() {
 
   const handleGeneratePdf = async () => {
     if (kpiResult === null) return;
+    setIsLoading(true);
 
     const currentKpiData: KpiResults = {
         kpiResult, gestantesControlResult, controlPercentageResult, examenesVihCompletosResult, resultadoTamizajeVihResult,
@@ -468,8 +470,18 @@ export default function KpiPage() {
         resultadoOdontologiaResult, ginecologiaResult, denominadorGinecologiaResult, porcentajeGinecologiaResult
     };
 
-    const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General");
-    await generarInformePDF(datosParaPdf);
+    try {
+      const aiRecommendations = await generateRecommendations(currentKpiData);
+      const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General", aiRecommendations);
+      await generarInformePDF(datosParaPdf);
+    } catch (error) {
+        console.error("Error generando recomendaciones de IA:", error);
+        setError("No se pudieron generar las recomendaciones de la IA. Se usará un texto predeterminado.");
+        const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General");
+        await generarInformePDF(datosParaPdf);
+    } finally {
+        setIsLoading(false);
+    }
   };
   
   const handleGeneratePdfsEnMasa = async () => {
@@ -497,12 +509,24 @@ export default function KpiPage() {
     for (const ips of ipsList) {
         const kpiDataForIps = await calculateKpiForFilter('', '', ips); 
         
-        const datosParaPdf = prepararDatosParaPdf(kpiDataForIps, ips);
-        const blob = await generarInformePDF(datosParaPdf, { background: backgroundImage }, '', true);
+        try {
+            const aiRecommendations = await generateRecommendations(kpiDataForIps);
+            const datosParaPdf = prepararDatosParaPdf(kpiDataForIps, ips, aiRecommendations);
+            const blob = await generarInformePDF(datosParaPdf, { background: backgroundImage }, '', true);
 
-        if (blob) {
-            const fileName = `Informe_Riesgo_${ips.replace(/\s/g, '_')}.pdf`;
-            zip.file(fileName, blob);
+            if (blob) {
+                const fileName = `Informe_Riesgo_${ips.replace(/\s/g, '_')}.pdf`;
+                zip.file(fileName, blob);
+            }
+        } catch (aiError) {
+            console.error(`Error generando recomendaciones de IA para ${ips}:`, aiError);
+            // Si la IA falla, genera el PDF con recomendaciones por defecto
+            const datosParaPdf = prepararDatosParaPdf(kpiDataForIps, ips);
+            const blob = await generarInformePDF(datosParaPdf, { background: backgroundImage }, '', true);
+            if (blob) {
+                const fileName = `Informe_Riesgo_${ips.replace(/\s/g, '_')}_sin_IA.pdf`;
+                zip.file(fileName, blob);
+            }
         }
     }
 
@@ -899,5 +923,3 @@ export default function KpiPage() {
     </div>
   );
 }
-
-    

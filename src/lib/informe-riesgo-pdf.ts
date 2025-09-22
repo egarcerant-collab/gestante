@@ -1,4 +1,3 @@
-
 // src/lib/informe-riesgo-pdf.ts
 // Genera un PDF con el esquema solicitado usando pdfmake.
 // A4, cuerpo 12 pt, títulos en negrilla. Si registras Arial, la usará;
@@ -228,7 +227,7 @@ export async function generarInformePDF(
   const pdfMake = (await import("pdfmake/build/pdfmake")).default;
   const vfsFonts = (await import("pdfmake/build/vfs_fonts")).default;
 
-  pdfMake.vfs = vfsFonts;
+  pdfMake.vfs = vfsFonts.pdfMake.vfs;
 
   await registerArialIfAvailable(pdfMake);
 

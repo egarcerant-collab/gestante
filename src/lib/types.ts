@@ -24,3 +24,30 @@ export interface KpiResults {
     denominadorGinecologiaResult: number | null;
     porcentajeGinecologiaResult: number | null;
 }
+
+export interface InformeDatos {
+    encabezado: {
+      proceso: string;
+      formato: string;
+      entidad: string;
+      vigencia: string;
+      lugarFecha: string;
+    };
+    referencia: string;
+    analisisResumido: string[];
+    datosAExtraer: Array<{ label: string; valor: string }>;
+    hallazgosCalidad: string[];
+    recomendaciones: string[];
+    observaciones: string[];
+    inasistentes?: Array<{ [key: string]: string }>;
+    kpisTFG?: {
+      TFG_E1: number;
+      TFG_E2: number;
+      TFG_E3: number;
+      TFG_E4: number;
+      TFG_E5: number;
+      TFG_TOTAL: number;
+    };
+    recomendacionesAI?: string[];
+  }
+  
