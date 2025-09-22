@@ -469,16 +469,31 @@ export default function KpiPage() {
         ecografiasValidasResult, resultadoEcografiasResult, nutricionResult, resultadoNutricionResult, odontologiaResult,
         resultadoOdontologiaResult, ginecologiaResult, denominadorGinecologiaResult, porcentajeGinecologiaResult
     };
+    
+    let backgroundImage = "";
+    try {
+        const response = await fetch('/imagenes/IMAGENEN UNIFICADA.jpg');
+        const blob = await response.blob();
+        const reader = new FileReader();
+        backgroundImage = await new Promise((resolve, reject) => {
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (error) {
+        console.error("Error al cargar la imagen de fondo:", error);
+    }
+
 
     try {
       const aiRecommendations = await generateRecommendations(currentKpiData);
       const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General", aiRecommendations);
-      await generarInformePDF(datosParaPdf);
+      await generarInformePDF(datosParaPdf, { background: backgroundImage });
     } catch (error) {
         console.error("Error generando recomendaciones de IA:", error);
         setError("No se pudieron generar las recomendaciones de la IA. Se usará un texto predeterminado.");
         const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General");
-        await generarInformePDF(datosParaPdf);
+        await generarInformePDF(datosParaPdf, { background: backgroundImage });
     } finally {
         setIsLoading(false);
     }
@@ -923,3 +938,5 @@ export default function KpiPage() {
     </div>
   );
 }
+
+    
