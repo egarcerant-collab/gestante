@@ -217,23 +217,28 @@ export function buildDocDefinition(data: InformeDatos, images?: PdfImages): TDoc
 }
 
 // ------------------------------------------------------------
-export async function descargarInformePDF(
+export async function generarInformePDF(
   datos: InformeDatos,
   images?: PdfImages,
-  nombre = "Informe_Evaluacion_Riesgo.pdf"
-) {
-  // Import dinámico para evitar problemas de SSR en Next/Firebase Studio
+  nombre = "Informe_Evaluacion_Riesgo.pdf",
+  obtenerBlob = false
+): Promise<Blob | void> {
   const pdfMake = (await import("pdfmake/build/pdfmake")).default;
   const vfsFonts = (await import("pdfmake/build/vfs_fonts")).default;
 
-  // vfs por defecto (Roboto); si registras Arial, se añadirá encima
   pdfMake.vfs = vfsFonts.pdfMake.vfs;
 
-  // Registrar Arial si proporcionaste las TTF en base64
   await registerArialIfAvailable(pdfMake);
 
   const docDef = buildDocDefinition(datos, images);
-  pdfMake.createPdf(docDef).download(nombre);
+  
+  if (obtenerBlob) {
+    return new Promise<Blob>((resolve) => {
+      pdfMake.createPdf(docDef).getBlob(blob => resolve(blob));
+    });
+  } else {
+    pdfMake.createPdf(docDef).download(nombre);
+  }
 }
 
     

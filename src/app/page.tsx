@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { calcularNumeradorGinecologia, calcularDenominadorGinecologia } from '@/lib/kpi-helpers';
-import { descargarInformePDF, InformeDatos, buildDocDefinition } from '@/lib/informe-riesgo-pdf';
+import { generarInformePDF, InformeDatos, buildDocDefinition } from '@/lib/informe-riesgo-pdf';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
@@ -39,11 +39,13 @@ export default function KpiPage() {
 
   const [departments, setDepartments] = useState<string[]>([]);
   const [municipalities, setMunicipalities] = useState<string[]>([]);
+  const [ipsList, setIpsList] = useState<string[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
   const [selectedMunicipality, setSelectedMunicipality] = useState<string>("");
+  const [selectedIps, setSelectedIps] = useState<string>("");
   
   const [allData, setAllData] = useState<any[]>([]);
-  const [deptMuniMap, setDeptMuniMap] = useState<Record<string, string[]>>({});
+  const [filterData, setFilterData] = useState<any[]>([]);
 
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,7 +55,7 @@ export default function KpiPage() {
     if (hasCalculated) {
       calculateKpi();
     }
-  }, [selectedDepartment, selectedMunicipality]);
+  }, [selectedDepartment, selectedMunicipality, selectedIps]);
 
   const cleanHeader = (h: string) =>
     String(h || "")
@@ -135,36 +137,47 @@ export default function KpiPage() {
       
       const departmentHeaderRaw = originalHeaders[pickHeader(firstClean, ["departamento_residencia"])];
       const municipalityHeaderRaw = originalHeaders[pickHeader(firstClean, ["municipio_de_residencia"])];
+      const ipsHeaderRaw = originalHeaders[pickHeader(firstClean, ["nombre", "ips", "primaria"])];
+
 
       if (isInitialRun) {
-        const localDeptMuniMap: Record<string, string[]> = {};
+        const filters: {depts: Set<string>, munis: Set<string>, ips: Set<string>} = {
+            depts: new Set(),
+            munis: new Set(),
+            ips: new Set(),
+        };
+
+        const filterRelation: any[] = [];
+        
         jsonData.forEach(row => {
           const dept = String(row[departmentHeaderRaw] || '').trim().toUpperCase();
           const muni = String(row[municipalityHeaderRaw] || '').trim().toUpperCase();
-          if (dept && muni) {
-            if (!localDeptMuniMap[dept]) {
-              localDeptMuniMap[dept] = [];
-            }
-            if (!localDeptMuniMap[dept].includes(muni)) {
-              localDeptMuniMap[dept].push(muni);
-            }
+          const ips = String(row[ipsHeaderRaw] || '').trim().toUpperCase();
+          if (dept) filters.depts.add(dept);
+          if (muni) filters.munis.add(muni);
+          if (ips) filters.ips.add(ips);
+          
+          if(dept && muni && ips) {
+              filterRelation.push({ dept, muni, ips });
           }
         });
-
-        const allDepartments = Object.keys(localDeptMuniMap).sort();
-        const allMunicipalities = [...new Set(Object.values(localDeptMuniMap).flat())].sort();
         
-        setDeptMuniMap(localDeptMuniMap);
-        setDepartments(allDepartments);
-        setMunicipalities(allMunicipalities);
+        setDepartments(Array.from(filters.depts).sort());
+        setMunicipalities(Array.from(filters.munis).sort());
+        setIpsList(Array.from(filters.ips).sort());
+        setFilterData(filterRelation);
       }
       
       const filteredData = jsonData.filter(row => {
           const rowDept = String(row[departmentHeaderRaw] || '').trim().toUpperCase();
           const rowMuni = String(row[municipalityHeaderRaw] || '').trim().toUpperCase();
+          const rowIps = String(row[ipsHeaderRaw] || '').trim().toUpperCase();
+          
           const deptMatch = !selectedDepartment || rowDept === selectedDepartment;
           const muniMatch = !selectedMunicipality || rowMuni === selectedMunicipality;
-          return deptMatch && muniMatch;
+          const ipsMatch = !selectedIps || rowIps === selectedIps;
+
+          return deptMatch && muniMatch && ipsMatch;
       });
 
       const controlHeader = pickHeader(firstClean, ["identificacion"]);
@@ -340,26 +353,54 @@ export default function KpiPage() {
     setHasCalculated(false);
     setDepartments([]);
     setMunicipalities([]);
+    setIpsList([]);
     setSelectedDepartment("");
     setSelectedMunicipality("");
+    setSelectedIps("");
   };
   
   const handleDepartmentChange = (value: string) => {
     const newDept = value === 'todos' ? '' : value;
     setSelectedDepartment(newDept);
     setSelectedMunicipality('');
+    setSelectedIps('');
   
+    let munis = new Set<string>();
+    let ips = new Set<string>();
+
     if (newDept) {
-      setMunicipalities(deptMuniMap[newDept]?.sort() || []);
+        filterData.filter(d => d.dept === newDept).forEach(d => {
+            munis.add(d.muni);
+            ips.add(d.ips);
+        });
     } else {
-      const allMunis = [...new Set(Object.values(deptMuniMap).flat())].sort();
-      setMunicipalities(allMunis);
+        filterData.forEach(d => {
+            munis.add(d.muni);
+            ips.add(d.ips);
+        });
     }
+    setMunicipalities(Array.from(munis).sort());
+    setIpsList(Array.from(ips).sort());
   };
 
   const handleMunicipalityChange = (value: string) => {
-      const newMuni = value === 'todos' ? '' : value;
-      setSelectedMunicipality(newMuni);
+    const newMuni = value === 'todos' ? '' : value;
+    setSelectedMunicipality(newMuni);
+    setSelectedIps('');
+
+    let ips = new Set<string>();
+    if(newMuni) {
+        filterData.filter(d => d.muni === newMuni).forEach(d => ips.add(d.ips));
+    } else {
+        const deptFiltered = filterData.filter(d => !selectedDepartment || d.dept === selectedDepartment);
+        deptFiltered.forEach(d => ips.add(d.ips));
+    }
+    setIpsList(Array.from(ips).sort());
+  }
+
+  const handleIpsChange = (value: string) => {
+    const newIps = value === 'todos' ? '' : value;
+    setSelectedIps(newIps);
   }
   
   const prepararDatosParaPdf = (): InformeDatos => {
@@ -409,7 +450,7 @@ export default function KpiPage() {
     }
     
     const datosParaPdf = prepararDatosParaPdf();
-    await descargarInformePDF(datosParaPdf, { background: backgroundImage });
+    await generarInformePDF(datosParaPdf, { background: backgroundImage });
   };
   
   const handleGeneratePdfsEnMasa = async () => {
@@ -724,7 +765,7 @@ export default function KpiPage() {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-gray-100 dark:bg-gray-900">
-      <Card className="w-full max-w-4xl">
+      <Card className="w-full max-w-6xl">
         <CardHeader>
           <CardTitle>Cálculo de Indicadores de Gestantes</CardTitle>
           <CardDescription>
@@ -732,7 +773,7 @@ export default function KpiPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="grid gap-1.5">
               <Label htmlFor="excel-file">Selecciona un archivo</Label>
               <Select onValueChange={handleFileChange} value={selectedFile}>
@@ -779,6 +820,24 @@ export default function KpiPage() {
                       <SelectItem value="todos">Todos</SelectItem>
                       {municipalities.map(muni => (
                         <SelectItem key={muni} value={muni}>{muni}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="ips-filter">IPS Primaria</Label>
+                  <Select
+                    onValueChange={handleIpsChange}
+                    value={selectedIps}
+                    disabled={ipsList.length === 0}
+                  >
+                    <SelectTrigger id="ips-filter">
+                      <SelectValue placeholder="Todas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todas</SelectItem>
+                      {ipsList.map(ips => (
+                        <SelectItem key={ips} value={ips}>{ips}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -838,3 +897,5 @@ export default function KpiPage() {
     </div>
   );
 }
+
+    
