@@ -16,13 +16,6 @@ import { generateRecommendations } from '@/ai/flows/generate-recommendations-flo
 
 
 const availableFiles: Record<string, { name: string; path: string }[]> = {
-    "2024": [
-      { name: "Enero", path: "/BASES/2024/ENERO.xlsx" },
-      { name: "Febrero", path: "/BASES/2024/FEBRERO.xlsx" },
-      { name: "Marzo", path: "/BASES/2024/MARZO.xlsx" },
-      { name: "Abril", path: "/BASES/2024/ABRIL.xlsx" },
-      { name: "Mayo", path: "/BASES/2024/MAYO.xlsx" }
-    ],
     "2025": [
       { name: "Enero", path: "/BASES/2025/ENERO.xlsx" },
       { name: "Febrero", path: "/BASES/2025/FEBRERO.xlsx" },
@@ -32,7 +25,8 @@ const availableFiles: Record<string, { name: string; path: string }[]> = {
       { name: "Junio", path: "/BASES/2025/JUNIO.xlsx" },
       { name: "Julio", path: "/BASES/2025/JULIO.xlsx" },
       { name: "Agosto", path: "/BASES/2025/AGOSTO.xlsx" }
-    ]
+    ],
+    "2026": []
   };
 
 export default function KpiPage() {
