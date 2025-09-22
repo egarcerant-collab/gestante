@@ -15,8 +15,37 @@ import type { KpiResults } from '@/lib/types';
 import { generateRecommendations } from '@/ai/flows/generate-recommendations-flow';
 
 
+const availableFiles: Record<string, { name: string; path: string }[]> = {
+    "2024": [
+      { name: "Enero", path: "/BASES/2024/ENERO.xlsx" },
+      { name: "Febrero", path: "/BASES/2024/FEBRERO.xlsx" },
+      { name: "Marzo", path: "/BASES/2024/MARZO.xlsx" },
+      { name: "Abril", path: "/BASES/2024/ABRIL.xlsx" },
+      { name: "Mayo", path: "/BASES/2024/MAYO.xlsx" },
+      { name: "Junio", path: "/BASES/2024/JUNIO.xlsx" },
+      { name: "Julio", path: "/BASES/2024/JULIO.xlsx" },
+      { name: "Agosto", path: "/BASES/2024/AGOSTO.xlsx" },
+      { name: "Septiembre", path: "/BASES/2024/SEPTIEMBRE.xlsx" },
+      { name: "Octubre", path: "/BASES/2024/OCTUBRE.xlsx" },
+      { name: "Noviembre", path: "/BASES/2024/NOVIEMBRE.xlsx" },
+      { name: "Diciembre", path: "/BASES/2024/DICIEMBRE.xlsx" },
+    ],
+    "2025": [
+      { name: "Enero", path: "/BASES/2025/ENERO.xlsx" },
+      { name: "Febrero", path: "/BASES/2025/FEBRERO.xlsx" },
+      { name: "Marzo", path: "/BASES/2025/MARZO.xlsx" },
+      { name: "Abril", path: "/BASES/2025/ABRIL.xlsx" },
+      { name: "Mayo", path: "/BASES/2025/MAYO.xlsx" },
+      { name: "Junio", path: "/BASES/2025/JUNIO.xlsx" },
+      { name: "Julio", path: "/BASES/2025/JULIO.xlsx" },
+    ]
+  };
+
 export default function KpiPage() {
   const [selectedFile, setSelectedFile] = useState<string>("");
+  const [selectedYear, setSelectedYear] = useState<string>("");
+  const [months, setMonths] = useState<{ name: string; path: string }[]>([]);
+
   const [kpiResult, setKpiResult] = useState<number | null>(null);
   const [gestantesControlResult, setGestantesControlResult] = useState<number | null>(null);
   const [controlPercentageResult, setControlPercentageResult] = useState<number | null>(null);
@@ -349,9 +378,20 @@ export default function KpiPage() {
     }
   };
 
+  const handleYearChange = (year: string) => {
+    setSelectedYear(year);
+    setMonths(availableFiles[year] || []);
+    setSelectedFile(""); // Reset month selection
+    resetAll();
+  };
+
   const handleFileChange = (value: string) => {
     setSelectedFile(value);
-    setAllData([]); 
+    resetAll();
+  };
+
+  const resetAll = () => {
+    setAllData([]);
     setError(null);
     setHasCalculated(false);
     setDepartments([]);
@@ -588,17 +628,17 @@ export default function KpiPage() {
         const vih2Header = pickHeader(firstClean, ["vih", "segundo", "tamiz"]);
         const vih3Header = pickHeader(firstClean, ["vih", "tercer", "tamiz"]);
         const sifilis1Header = pickHeader(firstClean, ["sifilis", "primera"]);
-        const sifilis2Header = pickHeader(firstClean, ["sifilis", "segunda"]);
-        const sifilis3Header = pickHeader(firstClean, ["sifilis", "tercera"]);
-        const toxoplasmaHeader = pickHeader(firstClean, ["toxoplasma"]);
-        const hbResultadoHeader = pickHeader(firstClean, ["hepatitis", "b", "resultado"]);
-        const hbFechaHeader = pickHeader(firstClean, ["hepatitis", "b", "fecha"]);
-        const chagasHeader = pickHeader(firstClean, ["chagas"]);
-        const eco1Header = pickHeader(firstClean, ["ecografia", "translucencia"]);
-        const eco2Header = pickHeader(firstClean, ["ecografia", "anomalias"]);
-        const eco3Header = pickHeader(firstClean, ["ecografia", "otras"]);
-        const nutricionHeader = pickHeader(firstClean, ["nutricion"]);
-        const odontologiaHeader = pickHeader(firstClean, ["odontolog"]);
+        const sifilis2Header = pickPicker(firstClean, ["sifilis", "segunda"]);
+        const sifilis3Header = pickPicker(firstClean, ["sifilis", "tercera"]);
+        const toxoplasmaHeader = pickPicker(firstClean, ["toxoplasma"]);
+        const hbResultadoHeader = pickPicker(firstClean, ["hepatitis", "b", "resultado"]);
+        const hbFechaHeader = pickPicker(firstClean, ["hepatitis", "b", "fecha"]);
+        const chagasHeader = pickPicker(firstClean, ["chagas"]);
+        const eco1Header = pickPicker(firstClean, ["ecografia", "translucencia"]);
+        const eco2Header = pickPicker(firstClean, ["ecografia", "anomalias"]);
+        const eco3Header = pickPicker(firstClean, ["ecografia", "otras"]);
+        const nutricionHeader = pickPicker(firstClean, ["nutricion"]);
+        const odontologiaHeader = pickPicker(firstClean, ["odontolog"]);
         
         let captacionCount = 0;
         let controlCount = 0;
@@ -813,14 +853,28 @@ export default function KpiPage() {
         <CardContent className="grid gap-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="grid gap-1.5">
-              <Label htmlFor="excel-file">Selecciona un archivo</Label>
-              <Select onValueChange={handleFileChange} value={selectedFile}>
+              <Label htmlFor="year-selector">Selecciona un año</Label>
+              <Select onValueChange={handleYearChange} value={selectedYear}>
+                <SelectTrigger id="year-selector">
+                  <SelectValue placeholder="Elige un año..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(availableFiles).map(year => (
+                    <SelectItem key={year} value={year}>{year}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="excel-file">Selecciona un mes</Label>
+              <Select onValueChange={handleFileChange} value={selectedFile} disabled={!selectedYear}>
                 <SelectTrigger id="excel-file">
                   <SelectValue placeholder="Elige un mes..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="/BASES/2025/JULIO.xlsx">Julio 2025</SelectItem>
-                  <SelectItem value="/BASES/2025/JUNIO.xlsx">Junio 2025</SelectItem>
+                  {months.map(month => (
+                    <SelectItem key={month.path} value={month.path}>{month.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
