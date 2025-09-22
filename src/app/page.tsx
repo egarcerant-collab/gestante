@@ -13,6 +13,7 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import type { KpiResults } from '@/lib/types';
 import { generateRecommendations } from '@/ai/flows/generate-recommendations-flow';
+import { MonthlyKpiChart } from '@/components/charts/MonthlyKpiChart';
 
 
 const availableFiles: Record<string, { name: string; path: string }[]> = {
@@ -28,6 +29,12 @@ const availableFiles: Record<string, { name: string; path: string }[]> = {
     ],
     "2026": []
   };
+
+type ChartDataItem = {
+  name: string;
+  'Gestantes en Control': number;
+  'Captación Oportuna': number;
+};
 
 export default function KpiPage() {
   const [selectedFile, setSelectedFile] = useState<string>("");
@@ -70,6 +77,9 @@ export default function KpiPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasCalculated, setHasCalculated] = useState(false);
+
+  const [chartData, setChartData] = useState<ChartDataItem[]>([]);
+  const [isChartLoading, setIsChartLoading] = useState(false);
   
   useEffect(() => {
     if (hasCalculated) {
@@ -123,7 +133,7 @@ export default function KpiPage() {
     try {
       let jsonData: any[] = allData;
 
-      if (isInitialRun || allData.length === 0) {
+      if (isInitialRun || allData.length === 0 || selectedFile !== allData[0]?.__sourcePath) {
         const response = await fetch(selectedFile);
         if (!response.ok) {
           throw new Error(`No se pudo encontrar el archivo en la ruta especificada. Status: ${response.status}`);
@@ -133,6 +143,7 @@ export default function KpiPage() {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: false });
+        jsonData.forEach(row => row.__sourcePath = selectedFile);
         setAllData(jsonData);
       }
       
@@ -366,16 +377,78 @@ export default function KpiPage() {
     }
   };
 
-  const handleYearChange = (year: string) => {
+  const handleYearChange = async (year: string) => {
     setSelectedYear(year);
     setMonths(availableFiles[year] || []);
-    setSelectedFile(""); // Reset month selection
+    setSelectedFile("");
     resetAll();
+    setChartData([]);
+    
+    if (availableFiles[year]?.length > 0) {
+      setIsChartLoading(true);
+      const dataPromises = availableFiles[year].map(async (monthFile) => {
+        try {
+          const response = await fetch(monthFile.path);
+          if (!response.ok) return null;
+          const data = await response.arrayBuffer();
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: false });
+          
+          if (jsonData.length === 0) return { name: monthFile.name, 'Gestantes en Control': 0, 'Captación Oportuna': 0 };
+
+          const firstClean: any = {};
+          Object.keys(jsonData[0]).forEach(k => { firstClean[cleanHeader(k)] = jsonData[0][k]; });
+          
+          const pickHeader = (rowObj: Record<string, any>, includes: string[]) => {
+            const keys = Object.keys(rowObj);
+            return keys.find(k => includes.every(frag => k.includes(frag))) || "";
+          };
+
+          const controlHeader = pickHeader(firstClean, ["identificacion"]);
+          const captacionHeader = pickHeader(firstClean, ["edad", "gest", "inicio", "control"]);
+          
+          let controlCount = 0;
+          let captacionCount = 0;
+          
+          jsonData.forEach((row: any) => {
+            const cleanedRow: { [key: string]: any } = {};
+            for (const key in row) {
+              cleanedRow[cleanHeader(key)] = row[key];
+            }
+            if (cleanedRow[controlHeader] !== undefined && cleanedRow[controlHeader] !== "") {
+              controlCount++;
+            }
+            const captacionValue = cleanedRow[captacionHeader];
+            if (captacionValue !== undefined && captacionValue !== "" && !isNaN(parseFloat(captacionValue)) && parseFloat(captacionValue) < 10) {
+              captacionCount++;
+            }
+          });
+          return { name: monthFile.name, 'Gestantes en Control': controlCount, 'Captación Oportuna': captacionCount };
+        } catch (error) {
+          console.error(`Error processing file for chart: ${monthFile.name}`, error);
+          return { name: monthFile.name, 'Gestantes en Control': 0, 'Captación Oportuna': 0 };
+        }
+      });
+
+      const results = (await Promise.all(dataPromises)).filter(Boolean) as ChartDataItem[];
+      setChartData(results);
+      setIsChartLoading(false);
+    }
   };
+
 
   const handleFileChange = (value: string) => {
     setSelectedFile(value);
-    resetAll();
+    setAllData([]);
+    setHasCalculated(false);
+    setDepartments([]);
+    setMunicipalities([]);
+    setIpsList([]);
+    setSelectedDepartment("");
+    setSelectedMunicipality("");
+    setSelectedIps("");
   };
 
   const resetAll = () => {
@@ -507,14 +580,21 @@ export default function KpiPage() {
             const base64data = reader.result;
             const images: PdfImages = { background: base64data as string };
 
-            const aiRecommendations = await generateRecommendations(currentKpiData);
-            const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General", aiRecommendations);
-            await generarInformePDF(datosParaPdf, images);
+            try {
+                const aiRecommendations = await generateRecommendations(currentKpiData);
+                const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General", aiRecommendations);
+                await generarInformePDF(datosParaPdf, images);
+            } catch (aiError) {
+                console.error("Error generating AI recommendations:", aiError);
+                setError("Error al generar las recomendaciones de IA. Usando valores por defecto.");
+                const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General");
+                await generarInformePDF(datosParaPdf, images);
+            }
         };
 
     } catch (error) {
-        console.error("Error generando el informe:", error);
-        setError("Error al cargar la imagen de fondo o generar las recomendaciones. Usando valores por defecto.");
+        console.error("Error generating report:", error);
+        setError("Error al cargar la imagen de fondo. El PDF se generará sin ella.");
         const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General");
         await generarInformePDF(datosParaPdf, undefined);
     } finally {
@@ -579,6 +659,10 @@ export default function KpiPage() {
 
 
   const calculateKpiForFilter = async (department: string, municipality: string, ips: string): Promise<KpiResults> => {
+    // This function requires allData to be populated from a single month's file.
+    // It is used for the mass PDF generation, which depends on a single month context.
+    const fileData = allData;
+    
     return new Promise<KpiResults>(resolve => {
         const pickHeader = (rowObj: Record<string, any>, includes: string[]) => {
             const keys = Object.keys(rowObj);
@@ -587,9 +671,13 @@ export default function KpiPage() {
 
         const firstClean: any = {};
         const originalHeaders: Record<string, string> = {};
-        for (const k in allData[0]) {
+        if (fileData.length === 0) {
+            resolve({} as KpiResults); // return empty if no data
+            return;
+        }
+        for (const k in fileData[0]) {
             const cleanedK = cleanHeader(k);
-            firstClean[cleanedK] = allData[0][k];
+            firstClean[cleanedK] = fileData[0][k];
             originalHeaders[cleanedK] = k;
         }
 
@@ -598,7 +686,7 @@ export default function KpiPage() {
         const ipsHeaderRaw = originalHeaders[pickHeader(firstClean, ["nombre", "ips", "primaria"])];
 
 
-        const filteredData = allData.filter(row => {
+        const filteredData = fileData.filter(row => {
             const rowDept = String(row[departmentHeaderRaw] || '').trim().toUpperCase();
             const rowMuni = String(row[municipalityHeaderRaw] || '').trim().toUpperCase();
             const rowIps = String(row[ipsHeaderRaw] || '').trim().toUpperCase();
@@ -835,11 +923,11 @@ export default function KpiPage() {
         <CardHeader>
           <CardTitle>Cálculo de Indicadores de Gestantes</CardTitle>
           <CardDescription>
-            Calcula los indicadores de "Captación Oportuna" y "Gestantes en Control" desde un archivo Excel.
+            Selecciona un año para ver el resumen mensual y luego un mes para calcular los indicadores detallados.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="grid gap-1.5">
               <Label htmlFor="year-selector">Selecciona un año</Label>
               <Select onValueChange={handleYearChange} value={selectedYear}>
@@ -866,70 +954,85 @@ export default function KpiPage() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          
+          {isChartLoading && <p>Cargando datos para gráficos...</p>}
+          {chartData.length > 0 && !isChartLoading && (
+            <div className="mt-4">
+                <h3 className="text-lg font-semibold mb-2 text-center">Resumen Mensual de Captación ({selectedYear})</h3>
+                <MonthlyKpiChart data={chartData} />
+            </div>
+          )}
+
+          {selectedFile && (
+            <>
+            <div className="flex gap-4 mt-4">
+                <Button onClick={() => calculateKpi(true)} className="w-full" disabled={isLoading || !selectedFile}>
+                {isLoading ? "Calculando..." : "Calcular Indicadores del Mes"}
+                </Button>
+            </div>
             {hasCalculated && (
-              <>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="department-filter">Departamento</Label>
-                  <Select
-                    onValueChange={handleDepartmentChange}
-                    value={selectedDepartment}
-                    disabled={departments.length === 0}
-                  >
-                    <SelectTrigger id="department-filter">
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todos">Todos</SelectItem>
-                      {departments.map(dept => (
-                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    <div className="grid gap-1.5">
+                    <Label htmlFor="department-filter">Departamento</Label>
+                    <Select
+                        onValueChange={handleDepartmentChange}
+                        value={selectedDepartment}
+                        disabled={departments.length === 0}
+                    >
+                        <SelectTrigger id="department-filter">
+                        <SelectValue placeholder="Todos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                        <SelectItem value="todos">Todos</SelectItem>
+                        {departments.map(dept => (
+                            <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                    </div>
+                    <div className="grid gap-1.5">
+                    <Label htmlFor="municipality-filter">Municipio</Label>
+                    <Select
+                        onValueChange={handleMunicipalityChange}
+                        value={selectedMunicipality}
+                        disabled={municipalities.length === 0}
+                    >
+                        <SelectTrigger id="municipality-filter">
+                        <SelectValue placeholder="Todos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                        <SelectItem value="todos">Todos</SelectItem>
+                        {municipalities.map(muni => (
+                            <SelectItem key={muni} value={muni}>{muni}</SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                    </div>
+                    <div className="grid gap-1.5">
+                    <Label htmlFor="ips-filter">IPS Primaria</Label>
+                    <Select
+                        onValueChange={handleIpsChange}
+                        value={selectedIps}
+                        disabled={ipsList.length === 0}
+                    >
+                        <SelectTrigger id="ips-filter">
+                        <SelectValue placeholder="Todas" />
+                        </SelectTrigger>
+                        <SelectContent>
+                        <SelectItem value="todos">Todas</SelectItem>
+                        {ipsList.map(ips => (
+                            <SelectItem key={ips} value={ips}>{ips}</SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                    </div>
                 </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="municipality-filter">Municipio</Label>
-                  <Select
-                    onValueChange={handleMunicipalityChange}
-                    value={selectedMunicipality}
-                    disabled={municipalities.length === 0}
-                  >
-                    <SelectTrigger id="municipality-filter">
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todos">Todos</SelectItem>
-                      {municipalities.map(muni => (
-                        <SelectItem key={muni} value={muni}>{muni}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="ips-filter">IPS Primaria</Label>
-                  <Select
-                    onValueChange={handleIpsChange}
-                    value={selectedIps}
-                    disabled={ipsList.length === 0}
-                  >
-                    <SelectTrigger id="ips-filter">
-                      <SelectValue placeholder="Todas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todos">Todas</SelectItem>
-                      {ipsList.map(ips => (
-                        <SelectItem key={ips} value={ips}>{ips}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
             )}
-          </div>
-          <div className="flex gap-4">
-            <Button onClick={() => calculateKpi(true)} className="w-full" disabled={isLoading || !selectedFile}>
-              {isLoading ? "Calculando..." : "Calcular Indicadores"}
-            </Button>
-          </div>
+            </>
+          )}
+
+
         </CardContent>
         <CardFooter className="flex flex-col items-start gap-4">
           {error && (
@@ -977,5 +1080,3 @@ export default function KpiPage() {
     </div>
   );
 }
-
-    
