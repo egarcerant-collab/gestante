@@ -2,6 +2,9 @@
 // Genera un PDF con el esquema solicitado usando pdfmake.
 // A4, cuerpo 12 pt, títulos en negrilla. Si registras Arial, la usará;
 // de lo contrario usará la fuente por defecto (Roboto).
+import type pdfMake from "pdfmake/build/pdfmake";
+import type { TDocumentDefinitions } from 'pdfmake/interfaces';
+
 
 export type Texto = string | (string | { text: string; bold?: boolean })[];
 
@@ -65,7 +68,7 @@ export async function registerArialIfAvailable(pdfMake: any) {
 }
 
 // ------------------------------------------------------------
-export function buildDocDefinition(data: InformeDatos, images?: PdfImages): any {
+export function buildDocDefinition(data: InformeDatos, images?: PdfImages): TDocumentDefinitions {
   const h = (t: string) => ({ text: t, style: "h1", margin: [0, 10, 0, 4] });
   const p = (t: Texto) => ({ text: t as any, style: "p", margin: [0, 0, 0, 4] });
 
@@ -180,7 +183,7 @@ export function buildDocDefinition(data: InformeDatos, images?: PdfImages): any 
   }
 
 
-  const docDefinition: any = {
+  const docDefinition: TDocumentDefinitions = {
     pageSize: "A4",
     pageMargins: [60, 88, 60, 74], 
     info: {
@@ -224,7 +227,7 @@ export async function descargarInformePDF(
   const vfsFonts = (await import("pdfmake/build/vfs_fonts")).default;
 
   // vfs por defecto (Roboto); si registras Arial, se añadirá encima
-  pdfMake.vfs = vfsFonts;
+  pdfMake.vfs = vfsFonts.pdfMake.vfs;
 
   // Registrar Arial si proporcionaste las TTF en base64
   await registerArialIfAvailable(pdfMake);
