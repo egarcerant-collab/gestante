@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -8,7 +9,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { calcularNumeradorGinecologia, calcularDenominadorGinecologia } from '@/lib/kpi-helpers';
-import { generarInformePDF, InformeDatos, PdfImages } from '@/lib/informe-riesgo-pdf';
+import { generarInformePDF } from '@/lib/informe-riesgo-pdf';
+import type { InformeDatos, PdfImages } from '@/lib/informe-riesgo-pdf';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import type { KpiResults } from '@/lib/types';
@@ -1080,3 +1082,5 @@ export default function KpiPage() {
     </div>
   );
 }
+
+    
