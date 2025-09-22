@@ -224,7 +224,7 @@ export async function descargarInformePDF(
   const vfsFonts = (await import("pdfmake/build/vfs_fonts")).default;
 
   // vfs por defecto (Roboto); si registras Arial, se añadirá encima
-  (pdfMake as any).vfs = vfsFonts.pdfMake.vfs;
+  pdfMake.vfs = vfsFonts.pdfMake.vfs;
 
   // Registrar Arial si proporcionaste las TTF en base64
   await registerArialIfAvailable(pdfMake);
