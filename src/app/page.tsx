@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { calcularNumeradorGinecologia, calcularDenominadorGinecologia } from '@/lib/kpi-helpers';
-import { descargarInformePDF, InformeDatos } from '@/lib/informe-riesgo-pdf';
+import { descargarInformePDF, InformeDatos, PdfImages } from '@/lib/informe-riesgo-pdf';
 
 export default function KpiPage() {
   const [selectedFile, setSelectedFile] = useState<string>("");
@@ -360,28 +360,9 @@ export default function KpiPage() {
       const newMuni = value === 'todos' ? '' : value;
       setSelectedMunicipality(newMuni);
   }
-
-  const handleGeneratePdf = async () => {
-    if (kpiResult === null) return;
-
-    // 1. Cargar imagen de fondo y convertirla a base64
-    let backgroundImage = "";
-    try {
-        const response = await fetch('/imagenes/IMAGENEN UNIFICADA.jpg');
-        const blob = await response.blob();
-        const reader = new FileReader();
-        backgroundImage = await new Promise((resolve, reject) => {
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
-    } catch (error) {
-        console.error("Error al cargar la imagen de fondo:", error);
-        // Continuar sin imagen de fondo si falla
-    }
-
-
-    const datosParaPdf: InformeDatos = {
+  
+  const prepararDatosParaPdf = (): InformeDatos => {
+    return {
         encabezado: {
             proceso: "Seguimiento a la Gestión del Riesgo en Salud",
             formato: "Informe de Evaluación de Indicadores",
@@ -407,8 +388,235 @@ export default function KpiPage() {
         observaciones: ["Se recomienda seguimiento a gestantes sin controles completos."],
         compromisos: ["Realizar capacitación al personal sobre el correcto diligenciamiento de la información."],
     };
+  };
 
+  const handleGeneratePdf = async () => {
+    if (kpiResult === null) return;
+
+    let backgroundImage = "";
+    try {
+        const response = await fetch('/imagenes/IMAGENEN UNIFICADA.jpg');
+        const blob = await response.blob();
+        const reader = new FileReader();
+        backgroundImage = await new Promise((resolve, reject) => {
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (error) {
+        console.error("Error al cargar la imagen de fondo:", error);
+    }
+    
+    const datosParaPdf = prepararDatosParaPdf();
     await descargarInformePDF(datosParaPdf, { background: backgroundImage });
+  };
+  
+  const handleGeneratePdfsEnMasa = async () => {
+      if (!allData.length || !departments.length) {
+          setError("Por favor, primero calcula los indicadores para cargar los datos.");
+          return;
+      }
+      setIsLoading(true);
+
+      let backgroundImage = "";
+      try {
+          const response = await fetch('/imagenes/IMAGENEN UNIFICADA.jpg');
+          const blob = await response.blob();
+          const reader = new FileReader();
+          backgroundImage = await new Promise((resolve, reject) => {
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+          });
+      } catch (error) {
+          console.error("Error al cargar la imagen de fondo:", error);
+      }
+
+      for (const dept of departments) {
+          await calculateKpiForFilter(dept, '');
+          const datosParaPdf = prepararDatosParaPdf();
+          await descargarInformePDF(
+              datosParaPdf,
+              { background: backgroundImage },
+              `Informe_Riesgo_${dept.replace(/\s/g, '_')}.pdf`
+          );
+      }
+      setIsLoading(false);
+  };
+
+  // Helper para recalcular KPIs para un filtro específico
+  const calculateKpiForFilter = async (department: string, municipality: string) => {
+      // Esta función es una versión simplificada de `calculateKpi` que no lee el archivo de nuevo
+      // y utiliza los datos ya cargados en `allData`.
+      const pickHeader = (rowObj: Record<string, any>, includes: string[]) => {
+          const keys = Object.keys(rowObj);
+          return keys.find(k => includes.every(frag => k.includes(frag))) || "";
+      };
+
+      const firstClean: any = {};
+      const originalHeaders: Record<string, string> = {};
+      for (const k in allData[0]) {
+          const cleanedK = cleanHeader(k);
+          firstClean[cleanedK] = allData[0][k];
+          originalHeaders[cleanedK] = k;
+      }
+
+      const departmentHeaderRaw = originalHeaders[pickHeader(firstClean, ["departamento_residencia"])];
+      const municipalityHeaderRaw = originalHeaders[pickHeader(firstClean, ["municipio_de_residencia"])];
+
+      const filteredData = allData.filter(row => {
+          const rowDept = String(row[departmentHeaderRaw] || '').trim().toUpperCase();
+          const rowMuni = String(row[municipalityHeaderRaw] || '').trim().toUpperCase();
+          const deptMatch = !department || rowDept === department;
+          const muniMatch = !municipality || rowMuni === municipality;
+          return deptMatch && muniMatch;
+      });
+
+      // --- Aquí va la misma lógica de cálculo que en calculateKpi ---
+      // (Se omite por brevedad, pero es un copy-paste de la lógica de iteración y cálculo)
+      const controlHeader = pickHeader(firstClean, ["identificacion"]);
+      const captacionHeader = pickHeader(firstClean, ["edad", "gest", "inicio", "control"]);
+      const vih1Header = pickHeader(firstClean, ["vih", "primer", "tamiz"]);
+      const vih2Header = pickHeader(firstClean, ["vih", "segundo", "tamiz"]);
+      const vih3Header = pickHeader(firstClean, ["vih", "tercer", "tamiz"]);
+      const sifilis1Header = pickHeader(firstClean, ["sifilis", "primera"]);
+      const sifilis2Header = pickHeader(firstClean, ["sifilis", "segunda"]);
+      const sifilis3Header = pickHeader(firstClean, ["sifilis", "tercera"]);
+      const toxoplasmaHeader = pickHeader(firstClean, ["toxoplasma"]);
+      const hbResultadoHeader = pickHeader(firstClean, ["hepatitis", "b", "resultado"]);
+      const hbFechaHeader = pickHeader(firstClean, ["hepatitis", "b", "fecha"]);
+      const chagasHeader = pickHeader(firstClean, ["chagas"]);
+      const eco1Header = pickHeader(firstClean, ["ecografia", "translucencia"]);
+      const eco2Header = pickHeader(firstClean, ["ecografia", "anomalias"]);
+      const eco3Header = pickHeader(firstClean, ["ecografia", "otras"]);
+      const nutricionHeader = pickHeader(firstClean, ["nutricion"]);
+      const odontologiaHeader = pickHeader(firstClean, ["odontolog"]);
+      
+      let captacionCount = 0;
+      let controlCount = 0;
+      let sinDatosVihCount = 0;
+      let sinDatosSifilisCount = 0;
+      let sinDatosToxoplasmaCount = 0;
+      let sinDatosHbCount = 0;
+      let sinDatosChagasCount = 0;
+      let sinDatosEcografiaCount = 0;
+      let sinDatosNutricionCount = 0;
+      let sinDatosOdontologiaCount = 0;
+      const totalRegistros = filteredData.length;
+
+      const numeradorGinecologia = calcularNumeradorGinecologia(filteredData);
+      const denominadorGinecologia = calcularDenominadorGinecologia(filteredData);
+
+      filteredData.forEach((row: any) => {
+        const cleanedRow: { [key: string]: any } = {};
+        for (const key in row) {
+            cleanedRow[cleanHeader(key)] = row[key];
+        }
+
+        const controlValue = cleanedRow[controlHeader];
+        if (controlValue !== undefined && controlValue !== "") {
+            controlCount++;
+        }
+        
+        const captacionValue = cleanedRow[captacionHeader];
+        if (captacionValue !== undefined && captacionValue !== "" && !isNaN(parseFloat(captacionValue)) && parseFloat(captacionValue) < 10) {
+          captacionCount++;
+        }
+
+        const vih1Value = String(cleanedRow[vih1Header] || '').toLowerCase();
+        const vih2Value = String(cleanedRow[vih2Header] || '').toLowerCase();
+        const vih3Value = String(cleanedRow[vih3Header] || '').toLowerCase();
+        if (vih1Value.includes("sin datos") && vih2Value.includes("sin datos") && vih3Value.includes("sin datos")) {
+          sinDatosVihCount++;
+        }
+
+        const sif1Value = String(cleanedRow[sifilis1Header] || '').toLowerCase().trim();
+        const sif2Value = String(cleanedRow[sifilis2Header] || '').toLowerCase().trim();
+        const sif3Value = String(cleanedRow[sifilis3Header] || '').toLowerCase().trim();
+        if (sif1Value.includes("sin datos") && sif2Value.includes("sin datos") && sif3Value.includes("sin datos")) {
+            sinDatosSifilisCount++;
+        }
+
+        const toxoplasmaValue = String(cleanedRow[toxoplasmaHeader] || '').toLowerCase().trim();
+        if (toxoplasmaValue.includes("sin datos")) {
+            sinDatosToxoplasmaCount++;
+        }
+
+        const hbResultadoValue = String(cleanedRow[hbResultadoHeader] || '').toLowerCase().trim();
+        const hbFechaValue = cleanedRow[hbFechaHeader];
+        if (hbResultadoValue.includes("sin datos") && !(hbFechaValue === undefined || hbFechaValue === "")) {
+            sinDatosHbCount++;
+        }
+
+        const chagasValue = String(cleanedRow[chagasHeader] || '').toLowerCase().trim();
+        if (chagasValue.includes("sin datos")) {
+            sinDatosChagasCount++;
+        }
+
+        const eco1Value = String(cleanedRow[eco1Header] || '').toLowerCase().trim();
+        const eco2Value = String(cleanedRow[eco2Header] || '').toLowerCase().trim();
+        const eco3Value = String(cleanedRow[eco3Header] || '').toLowerCase().trim();
+        if (eco1Value.includes("sin datos") && eco2Value.includes("sin datos") && eco3Value.includes("sin datos")) {
+            sinDatosEcografiaCount++;
+        }
+
+        const nutricionValue = String(cleanedRow[nutricionHeader] || '').toLowerCase().trim();
+        if (nutricionValue.includes("sin datos")) {
+            sinDatosNutricionCount++;
+        }
+
+        const odontologiaValue = String(cleanedRow[odontologiaHeader] || '').toLowerCase().trim();
+        if (odontologiaValue.includes("sin datos")) {
+            sinDatosOdontologiaCount++;
+        }
+      });
+      
+      const examenesVihCompletos = totalRegistros - sinDatosVihCount;
+      const examenesSifilisCompletos = totalRegistros - sinDatosSifilisCount;
+      const toxoplasmaValidos = totalRegistros - sinDatosToxoplasmaCount;
+      const examenesHbCompletos = totalRegistros - sinDatosHbCount;
+      const chagasResultadosValidos = totalRegistros - sinDatosChagasCount;
+      const ecografiasValidas = totalRegistros - sinDatosEcografiaCount;
+      const nutricionValidos = totalRegistros - sinDatosNutricionCount;
+      const odontologiaValidos = totalRegistros - sinDatosOdontologiaCount;
+
+      setKpiResult(captacionCount);
+      setGestantesControlResult(controlCount);
+      setExamenesVihCompletosResult(examenesVihCompletos);
+      setExamenesSifilisCompletosResult(examenesSifilisCompletos);
+      setToxoplasmaValidosResult(toxoplasmaValidos);
+      setExamenesHbCompletosResult(examenesHbCompletos);
+      setChagasResultadosValidosResult(chagasResultadosValidos);
+      setEcografiasValidasResult(ecografiasValidas);
+      setNutricionResult(nutricionValidos);
+      setOdontologiaResult(odontologiaValidos);
+      setGinecologiaResult(numeradorGinecologia);
+      setDenominadorGinecologiaResult(denominadorGinecologia);
+
+      if (denominadorGinecologia > 0) setPorcentajeGinecologiaResult((numeradorGinecologia / denominadorGinecologia) * 100);
+      else setPorcentajeGinecologiaResult(0);
+      
+      if (controlCount > 0) {
+        setControlPercentageResult((captacionCount / controlCount) * 100);
+        setResultadoTamizajeVihResult((examenesVihCompletos / controlCount) * 100);
+        setResultadoTamizajeSifilisResult((examenesSifilisCompletos / controlCount) * 100);
+        setResultadoToxoplasmaResult((toxoplasmaValidos / controlCount) * 100);
+        setResultadoTamizajeHbResult((examenesHbCompletos / controlCount) * 100);
+        setResultadoChagasResult((chagasResultadosValidos / controlCount) * 100);
+        setResultadoEcografiasResult((ecografiasValidas / controlCount) * 100);
+        setResultadoNutricionResult((nutricionValidos / controlCount) * 100);
+        setResultadoOdontologiaResult((odontologiaValidos / controlCount) * 100);
+      } else {
+        setControlPercentageResult(0);
+        setResultadoTamizajeVihResult(0);
+        setResultadoTamizajeSifilisResult(0);
+        setResultadoToxoplasmaResult(0);
+        setResultadoTamizajeHbResult(0);
+        setResultadoChagasResult(0);
+        setResultadoEcografiasResult(0);
+        setResultadoNutricionResult(0);
+        setResultadoOdontologiaResult(0);
+      }
   };
 
 
@@ -597,9 +805,14 @@ export default function KpiPage() {
             </div>
           ))}
           {hasCalculated && (
-              <Button onClick={handleGeneratePdf} className="w-full mt-4" variant="outline" disabled={isLoading}>
-                Generar Informe PDF
-              </Button>
+              <div className="w-full mt-4 flex flex-col md:flex-row gap-4">
+                <Button onClick={handleGeneratePdf} className="flex-1" variant="outline" disabled={isLoading}>
+                    Generar Informe PDF (Actual)
+                </Button>
+                <Button onClick={handleGeneratePdfsEnMasa} className="flex-1" variant="outline" disabled={isLoading || !departments.length}>
+                    {isLoading ? "Generando..." : "Generar Informes por Departamento (En Masa)"}
+                </Button>
+            </div>
             )}
         </CardFooter>
       </Card>
