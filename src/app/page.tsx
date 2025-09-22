@@ -454,7 +454,7 @@ export default function KpiPage() {
   };
   
   const handleGeneratePdfsEnMasa = async () => {
-    if (!allData.length || !departments.length) {
+    if (!allData.length || !ipsList.length) {
         setError("Por favor, primero calcula los indicadores para cargar los datos.");
         return;
     }
@@ -475,35 +475,27 @@ export default function KpiPage() {
         console.error("Error al cargar la imagen de fondo:", error);
     }
 
-    const localPdfMake = (await import("pdfmake/build/pdfmake")).default;
-    const localVfsFonts = (await import("pdfmake/build/vfs_fonts")).default;
-    localPdfMake.vfs = localVfsFonts;
-
-
-    for (const dept of departments) {
-        await calculateKpiForFilter(dept, ''); 
+    for (const ips of ipsList) {
+        await calculateKpiForFilter('', '', ips); 
         
-        const datosParaPdf = prepararDatosParaPdf(); 
-        const docDefinition = buildDocDefinition(datosParaPdf, { background: backgroundImage });
+        const datosParaPdf = prepararDatosParaPdf();
+        const blob = await generarInformePDF(datosParaPdf, { background: backgroundImage }, '', true);
 
-        const pdfDocGenerator = localPdfMake.createPdf(docDefinition);
-        const blob = await new Promise<Blob>(resolve => {
-            pdfDocGenerator.getBlob(blob => resolve(blob));
-        });
-
-        const fileName = `Informe_Riesgo_${dept.replace(/\s/g, '_')}.pdf`;
-        zip.file(fileName, blob);
+        if (blob) {
+            const fileName = `Informe_Riesgo_${ips.replace(/\s/g, '_')}.pdf`;
+            zip.file(fileName, blob);
+        }
     }
 
     zip.generateAsync({ type: "blob" }).then(content => {
-        saveAs(content, `Informes_Departamentales_${new Date().toISOString().slice(0,10)}.zip`);
+        saveAs(content, `Informes_por_IPS_${new Date().toISOString().slice(0,10)}.zip`);
     });
 
     setIsLoading(false);
   };
 
 
-  const calculateKpiForFilter = async (department: string, municipality: string) => {
+  const calculateKpiForFilter = async (department: string, municipality: string, ips: string) => {
     return new Promise<void>(resolve => {
         const pickHeader = (rowObj: Record<string, any>, includes: string[]) => {
             const keys = Object.keys(rowObj);
@@ -520,16 +512,19 @@ export default function KpiPage() {
 
         const departmentHeaderRaw = originalHeaders[pickHeader(firstClean, ["departamento_residencia"])];
         const municipalityHeaderRaw = originalHeaders[pickHeader(firstClean, ["municipio_de_residencia"])];
+        const ipsHeaderRaw = originalHeaders[pickHeader(firstClean, ["nombre", "ips", "primaria"])];
 
 
         const filteredData = allData.filter(row => {
             const rowDept = String(row[departmentHeaderRaw] || '').trim().toUpperCase();
             const rowMuni = String(row[municipalityHeaderRaw] || '').trim().toUpperCase();
+            const rowIps = String(row[ipsHeaderRaw] || '').trim().toUpperCase();
 
             const deptMatch = !department || rowDept === department;
             const muniMatch = !municipality || rowMuni === municipality;
+            const ipsMatch = !ips || rowIps === ips;
 
-            return deptMatch && muniMatch;
+            return deptMatch && muniMatch && ipsMatch;
         });
 
         const controlHeader = pickHeader(firstClean, ["identificacion"]);
@@ -887,8 +882,8 @@ export default function KpiPage() {
                 <Button onClick={handleGeneratePdf} className="flex-1" variant="outline" disabled={isLoading}>
                     Generar Informe PDF (Actual)
                 </Button>
-                <Button onClick={handleGeneratePdfsEnMasa} className="flex-1" variant="outline" disabled={isLoading || !departments.length}>
-                    {isLoading ? "Generando..." : "Generar Informes por Departamento (En Masa)"}
+                <Button onClick={handleGeneratePdfsEnMasa} className="flex-1" variant="outline" disabled={isLoading || !ipsList.length}>
+                    {isLoading ? "Generando..." : "Generar Informes por IPS (En Masa)"}
                 </Button>
             </div>
             )}
