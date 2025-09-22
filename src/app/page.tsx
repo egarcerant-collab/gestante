@@ -119,11 +119,6 @@ export default function KpiPage() {
         return;
       }
       
-      const pickHeader = (rowObj: Record<string, any>, includes: string[]) => {
-        const keys = Object.keys(rowObj);
-        return keys.find(k => includes.every(frag => k.includes(frag))) || "";
-      };
-      
       const firstClean: any = {};
       const originalHeaders: Record<string, string> = {};
       for (const k in jsonData[0]) {
@@ -131,6 +126,11 @@ export default function KpiPage() {
         firstClean[cleanedK] = jsonData[0][k];
         originalHeaders[cleanedK] = k;
       }
+
+      const pickHeader = (rowObj: Record<string, any>, includes: string[]) => {
+        const keys = Object.keys(rowObj);
+        return keys.find(k => includes.every(frag => k.includes(frag))) || "";
+      };
       
       const departmentHeaderRaw = originalHeaders[pickHeader(firstClean, ["departamento_residencia"])];
       const municipalityHeaderRaw = originalHeaders[pickHeader(firstClean, ["municipio_de_residencia"])];
@@ -362,7 +362,7 @@ export default function KpiPage() {
   }
 
   const handleGeneratePdf = async () => {
-    if (!kpiResult) return;
+    if (kpiResult === null) return;
 
     // 1. Cargar imagen de fondo y convertirla a base64
     let backgroundImage = "";
@@ -563,14 +563,14 @@ export default function KpiPage() {
             <Button onClick={() => calculateKpi(true)} className="w-full" disabled={isLoading || !selectedFile}>
               {isLoading ? "Calculando..." : "Calcular Indicadores"}
             </Button>
-            {hasCalculated && (
+          </div>
+        </CardContent>
+        <CardFooter className="flex flex-col items-start gap-4">
+          {hasCalculated && (
               <Button onClick={handleGeneratePdf} className="w-full" variant="outline" disabled={isLoading}>
                 Generar Informe PDF
               </Button>
             )}
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col items-start gap-4">
           {error && (
             <Alert variant="destructive">
               <AlertTitle>Error</AlertTitle>
