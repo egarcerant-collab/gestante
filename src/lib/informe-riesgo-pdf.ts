@@ -19,9 +19,9 @@ export interface InformeDatos {
   referencia: Texto;
   analisisResumido: Texto[];
   datosAExtraer: Array<{ label: string; valor: string }>;
-  calidadDato: Texto[];
+  hallazgosCalidad: Texto[];
+  recomendaciones: Texto[];
   observaciones: Texto[];
-  compromisos: Texto[];
   inasistentes?: Array<{ [key: string]: string }>;
   kpisTFG?: {
     TFG_E1: number;
@@ -122,15 +122,16 @@ export function buildDocDefinition(data: InformeDatos, images?: PdfImages): TDoc
 
       // Calidad del dato
       h("Calidad del dato (hallazgos)"),
-      { ul: data.calidadDato.map((t) => ({ text: t, style: "p" })) },
+      p("Se evidencia baja calidad en el reporte de la base de datos de la ruta materno perinatal, por lo cual se hace necesario reportar la información dentro de la data urgentemente teniendo en cuenta los siguientes hallazgos:"),
+      { ol: data.hallazgosCalidad.map(t => ({text: t, style: "p"})) },
 
-      // Observaciones específicas
-      h("Observaciones específicas"),
-      { ul: data.observaciones.map((t) => ({ text: t, style: "p" })) },
+      // Recomendaciones
+      h("RECOMENDACIONES"),
+      { ul: data.recomendaciones.map(t => ({text: t, style: "p"})) },
 
-      // Compromisos y acciones
-      h("Compromisos y acciones"),
-      { ul: data.compromisos.map((t) => ({ text: t, style: "p" })) },
+      // Observaciones
+      h("OBSERVACIONES"),
+      { ul: data.observaciones.map(t => ({text: t, style: "p"})) }
     ];
     
     if (data.kpisTFG) {
@@ -226,7 +227,7 @@ export async function generarInformePDF(
   const pdfMake = (await import("pdfmake/build/pdfmake")).default;
   const vfsFonts = (await import("pdfmake/build/vfs_fonts")).default;
 
-  pdfMake.vfs = vfsFonts;
+  pdfMake.vfs = vfsFonts.pdfMake.vfs;
 
   await registerArialIfAvailable(pdfMake);
 

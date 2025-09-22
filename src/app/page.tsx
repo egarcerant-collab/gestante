@@ -11,6 +11,8 @@ import { calcularNumeradorGinecologia, calcularDenominadorGinecologia } from '@/
 import { generarInformePDF, InformeDatos, buildDocDefinition } from '@/lib/informe-riesgo-pdf';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import type { KpiResults } from '@/lib/types';
+
 
 export default function KpiPage() {
   const [selectedFile, setSelectedFile] = useState<string>("");
@@ -403,54 +405,71 @@ export default function KpiPage() {
     setSelectedIps(newIps);
   }
   
-  const prepararDatosParaPdf = (): InformeDatos => {
+  const prepararDatosParaPdf = (kpiData: KpiResults, ips: string): InformeDatos => {
     return {
         encabezado: {
             proceso: "Seguimiento a la Gestión del Riesgo en Salud",
             formato: "Informe de Evaluación de Indicadores",
-            entidad: "Entidad Evaluada (Ejemplo)",
+            entidad: ips,
             vigencia: selectedFile.split('/').pop()?.split('.')[0] || 'N/A',
             lugarFecha: `BOGOTÁ D.C, ${new Date().toLocaleDateString('es-CO')}`
         },
         referencia: "Análisis de indicadores de gestantes basado en el archivo cargado.",
         analisisResumido: [
-            `Total de gestantes en control: ${gestantesControlResult}`,
-            `Gestantes con captación oportuna: ${kpiResult} (${controlPercentageResult?.toFixed(2)}%)`
+            `Total de gestantes en control: ${kpiData.gestantesControlResult}`,
+            `Gestantes con captación oportuna: ${kpiData.kpiResult} (${kpiData.controlPercentageResult?.toFixed(2)}%)`
         ],
         datosAExtraer: [
-            { label: "Gestantes en Control", valor: String(gestantesControlResult) },
-            { label: "Captación Oportuna (< 10 sem)", valor: String(kpiResult) },
-            { label: "% Captación Oportuna", valor: `${controlPercentageResult?.toFixed(2)}%` },
-            { label: "Exámenes VIH Completos", valor: String(examenesVihCompletosResult) },
-            { label: "% Tamizaje VIH", valor: `${resultadoTamizajeVihResult?.toFixed(2)}%` },
-            { label: "Exámenes Sífilis Completos", valor: String(examenesSifilisCompletosResult) },
-            { label: "% Tamizaje Sífilis", valor: `${resultadoTamizajeSifilisResult?.toFixed(2)}%` },
+            { label: "Gestantes en Control", valor: String(kpiData.gestantesControlResult) },
+            { label: "Captación Oportuna (< 10 sem)", valor: String(kpiData.kpiResult) },
+            { label: "% Captación Oportuna", valor: `${kpiData.controlPercentageResult?.toFixed(2)}%` },
+            { label: "Exámenes VIH Completos", valor: String(kpiData.examenesVihCompletosResult) },
+            { label: "% Tamizaje VIH", valor: `${kpiData.resultadoTamizajeVihResult?.toFixed(2)}%` },
+            { label: "Exámenes Sífilis Completos", valor: String(kpiData.examenesSifilisCompletosResult) },
+            { label: "% Tamizaje Sífilis", valor: `${kpiData.resultadoTamizajeSifilisResult?.toFixed(2)}%` },
         ],
-        calidadDato: ["Se requiere mejorar el registro de fechas de tamizajes.", "Existen registros sin dato en la clasificación de riesgo."],
-        observaciones: ["Se recomienda seguimiento a gestantes sin controles completos."],
-        compromisos: ["Realizar capacitación al personal sobre el correcto diligenciamiento de la información."],
+        hallazgosCalidad: [
+            "Completar datos clínicos clave que permitan el adecuado seguimiento de la gestante, tales como la fecha de última menstruación, fundamental para el cálculo gestacional.",
+            "Asegurar la clasificación del riesgo obstétrico durante el control prenatal, de acuerdo con los lineamientos establecidos (ARO/BRO).",
+            "Registrar adecuadamente los factores de riesgo identificados, especialmente en gestantes clasificadas como alto riesgo.",
+            "Evitar la alteración o eliminación de fórmulas preestablecidas en las bases de datos, ya que comprometen la integridad del análisis.",
+            "Verificar la coherencia en el diligenciamiento de resultados de tamizajes, como VIH y Sífilis, respetando las casillas correspondientes.",
+            "Garantizar el registro completo y adecuado de exámenes de laboratorio, justificando cualquier omisión en las casillas de observaciones, conforme a los lineamientos institucionales.",
+            "Asegurar la orden y realización oportuna de ecografías obstétricas, siguiendo el cronograma recomendado para cada trimestre.",
+            "Normalizar el registro de pruebas serológicas como toxoplasma y rubéola, usando las categorías establecidas (Positivo o Negativo), evitando otros formatos o errores de digitación.",
+            "Promover y documentar la realización de citología cervicouterina según edad gestacional y criterios clínicos establecidos.",
+            "Registrar de manera oportuna la aplicación de vacunas correspondientes, conforme al esquema definido para gestantes.",
+            "Garantizar y registrar la entrega de suplementos nutricionales, como hierro, ácido fólico y otros micronutrientes según protocolos.",
+            "Actualizar los desenlaces obstétricos (nacimientos, abortos, muertes maternas y perinatales), migrando los casos cerrados a la pestaña correspondiente en la base de datos.",
+            "Fortalecer la captación temprana de gestantes, priorizando el ingreso antes de la semana 12 de gestación y registrando las razones de ingreso tardío cuando aplique.",
+        ],
+        recomendaciones: [
+            "Diseñar y aplicar los procesos de evaluación y seguimiento a la ruta materno perinatal.",
+            "Implementar las acciones de mejora para el fortalecimiento de la ruta materno perinatal.",
+            "Fortalecer la demanda inducida institucional para la captación temprana de la gestante (antes de las 12 semanas) especificar en observaciones el ingreso tardío.",
+            "Implementar la tamización con pruebas rápidas (VIH – Sífilis) para dar cumplimiento a la ruta de atención materno perinatal garantizando la tamización por trimestre.",
+            "Garantizar la atención ginecológica, nutricional, odontológica y psicológica de todas las gestantes inscritas al programa de atención al control prenatal teniendo en cuenta la clasificación del riesgo y los tiempos establecidos en la resolución 3280/2018 para la consulta por especialista."
+        ],
+        observaciones: [
+            "Se solicitan historias clínicas las cuales no han sido enviadas a la fecha por lo que no se realiza auditoria de historias durante el mes de junio.",
+            "En base a los hallazgos y no conformidades encontradas queda el compromiso por parte de la IPS de enviar la base de datos del siguiente mes aplicando los correctivos para el mejoramiento continuo de la calidad y seguimiento oportuno a las gestantes."
+        ],
     };
   };
 
   const handleGeneratePdf = async () => {
     if (kpiResult === null) return;
 
-    let backgroundImage = "";
-    try {
-        const response = await fetch('/imagenes/IMAGENEN UNIFICADA.jpg');
-        const blob = await response.blob();
-        const reader = new FileReader();
-        backgroundImage = await new Promise((resolve, reject) => {
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
-    } catch (error) {
-        console.error("Error al cargar la imagen de fondo:", error);
-    }
-    
-    const datosParaPdf = prepararDatosParaPdf();
-    await generarInformePDF(datosParaPdf, { background: backgroundImage });
+    const currentKpiData: KpiResults = {
+        kpiResult, gestantesControlResult, controlPercentageResult, examenesVihCompletosResult, resultadoTamizajeVihResult,
+        examenesSifilisCompletosResult, resultadoTamizajeSifilisResult, toxoplasmaValidosResult, resultadoToxoplasmaResult,
+        examenesHbCompletosResult, resultadoTamizajeHbResult, chagasResultadosValidosResult, resultadoChagasResult,
+        ecografiasValidasResult, resultadoEcografiasResult, nutricionResult, resultadoNutricionResult, odontologiaResult,
+        resultadoOdontologiaResult, ginecologiaResult, denominadorGinecologiaResult, porcentajeGinecologiaResult
+    };
+
+    const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General");
+    await generarInformePDF(datosParaPdf);
   };
   
   const handleGeneratePdfsEnMasa = async () => {
@@ -476,9 +495,9 @@ export default function KpiPage() {
     }
 
     for (const ips of ipsList) {
-        await calculateKpiForFilter('', '', ips); 
+        const kpiDataForIps = await calculateKpiForFilter('', '', ips); 
         
-        const datosParaPdf = prepararDatosParaPdf();
+        const datosParaPdf = prepararDatosParaPdf(kpiDataForIps, ips);
         const blob = await generarInformePDF(datosParaPdf, { background: backgroundImage }, '', true);
 
         if (blob) {
@@ -495,8 +514,8 @@ export default function KpiPage() {
   };
 
 
-  const calculateKpiForFilter = async (department: string, municipality: string, ips: string) => {
-    return new Promise<void>(resolve => {
+  const calculateKpiForFilter = async (department: string, municipality: string, ips: string): Promise<KpiResults> => {
+    return new Promise<KpiResults>(resolve => {
         const pickHeader = (rowObj: Record<string, any>, includes: string[]) => {
             const keys = Object.keys(rowObj);
             return keys.find(k => includes.every(frag => k.includes(frag))) || "";
@@ -633,44 +652,32 @@ export default function KpiPage() {
         const nutricionValidos = totalRegistros - sinDatosNutricionCount;
         const odontologiaValidos = totalRegistros - sinDatosOdontologiaCount;
 
-        setKpiResult(captacionCount);
-        setGestantesControlResult(controlCount);
-        setExamenesVihCompletosResult(examenesVihCompletos);
-        setExamenesSifilisCompletosResult(examenesSifilisCompletos);
-        setToxoplasmaValidosResult(toxoplasmaValidos);
-        setExamenesHbCompletosResult(examenesHbCompletos);
-        setChagasResultadosValidosResult(chagasResultadosValidos);
-        setEcografiasValidasResult(ecografiasValidas);
-        setNutricionResult(nutricionValidos);
-        setOdontologiaResult(odontologiaValidos);
-        setGinecologiaResult(numeradorGinecologia);
-        setDenominadorGinecologiaResult(denominadorGinecologia);
-
-        if (denominadorGinecologia > 0) setPorcentajeGinecologiaResult((numeradorGinecologia / denominadorGinecologia) * 100);
-        else setPorcentajeGinecologiaResult(0);
+        const results: KpiResults = {
+            kpiResult: captacionCount,
+            gestantesControlResult: controlCount,
+            controlPercentageResult: controlCount > 0 ? (captacionCount / controlCount) * 100 : 0,
+            examenesVihCompletosResult: examenesVihCompletos,
+            resultadoTamizajeVihResult: controlCount > 0 ? (examenesVihCompletos / controlCount) * 100 : 0,
+            examenesSifilisCompletosResult: examenesSifilisCompletos,
+            resultadoTamizajeSifilisResult: controlCount > 0 ? (examenesSifilisCompletos / controlCount) * 100 : 0,
+            toxoplasmaValidosResult: toxoplasmaValidos,
+            resultadoToxoplasmaResult: controlCount > 0 ? (toxoplasmaValidos / controlCount) * 100 : 0,
+            examenesHbCompletosResult: examenesHbCompletos,
+            resultadoTamizajeHbResult: controlCount > 0 ? (examenesHbCompletos / controlCount) * 100 : 0,
+            chagasResultadosValidosResult: chagasResultadosValidos,
+            resultadoChagasResult: controlCount > 0 ? (chagasResultadosValidos / controlCount) * 100 : 0,
+            ecografiasValidasResult: ecografiasValidas,
+            resultadoEcografiasResult: controlCount > 0 ? (ecografiasValidas / controlCount) * 100 : 0,
+            nutricionResult: nutricionValidos,
+            resultadoNutricionResult: controlCount > 0 ? (nutricionValidos / controlCount) * 100 : 0,
+            odontologiaResult: odontologiaValidos,
+            resultadoOdontologiaResult: controlCount > 0 ? (odontologiaValidos / controlCount) * 100 : 0,
+            ginecologiaResult: numeradorGinecologia,
+            denominadorGinecologiaResult: denominadorGinecologia,
+            porcentajeGinecologiaResult: denominadorGinecologia > 0 ? (numeradorGinecologia / denominadorGinecologia) * 100 : 0,
+        };
         
-        if (controlCount > 0) {
-          setControlPercentageResult((captacionCount / controlCount) * 100);
-          setResultadoTamizajeVihResult((examenesVihCompletos / controlCount) * 100);
-          setResultadoTamizajeSifilisResult((examenesSifilisCompletos / controlCount) * 100);
-          setResultadoToxoplasmaResult((toxoplasmaValidos / controlCount) * 100);
-          setResultadoTamizajeHbResult((examenesHbCompletos / controlCount) * 100);
-          setResultadoChagasResult((chagasResultadosValidos / controlCount) * 100);
-          setResultadoEcografiasResult((ecografiasValidas / controlCount) * 100);
-          setResultadoNutricionResult((nutricionValidos / controlCount) * 100);
-          setResultadoOdontologiaResult((odontologiaValidos / controlCount) * 100);
-        } else {
-          setControlPercentageResult(0);
-          setResultadoTamizajeVihResult(0);
-          setResultadoTamizajeSifilisResult(0);
-          setResultadoToxoplasmaResult(0);
-          setResultadoTamizajeHbResult(0);
-          setResultadoChagasResult(0);
-          setResultadoEcografiasResult(0);
-          setResultadoNutricionResult(0);
-          setResultadoOdontologiaResult(0);
-        }
-        resolve();
+        resolve(results);
     });
 };
 
@@ -892,5 +899,3 @@ export default function KpiPage() {
     </div>
   );
 }
-
-    
