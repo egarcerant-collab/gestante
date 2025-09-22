@@ -1035,16 +1035,12 @@ export default function KpiPage() {
           </div>
           
           <div className="flex flex-col md:flex-row gap-4 mt-4">
-            {selectedYear && (
-                <Button onClick={handleGenerateChart} className="flex-1" disabled={isChartLoading || !selectedYear}>
-                    {isChartLoading ? "Generando Gráfico..." : "Generar Gráficos Vigencia"}
-                </Button>
-            )}
-            {selectedFile && (
-                <Button onClick={() => calculateKpi(true)} className="flex-1" disabled={isLoading || !selectedFile}>
-                {isLoading ? "Calculando..." : "Calcular Indicadores"}
-                </Button>
-            )}
+            <Button onClick={handleGenerateChart} className="flex-1" disabled={isChartLoading || !selectedYear}>
+                {isChartLoading ? "Generando Gráfico..." : "Generar Gráficos Vigencia"}
+            </Button>
+            <Button onClick={() => calculateKpi(true)} className="flex-1" disabled={isLoading || !selectedFile}>
+            {isLoading ? "Calculando..." : "Calcular Indicadores"}
+            </Button>
           </div>
 
           {isChartLoading && <p>Cargando datos para gráficos...</p>}
