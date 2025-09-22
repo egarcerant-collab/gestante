@@ -1113,7 +1113,7 @@ export default function KpiPage() {
                 <div className="grid gap-1.5">
                 <Label htmlFor="ips-filter">IPS Primaria</Label>
                 <Select
-                    onValue-change={handleIpsChange}
+                    onValueChange={handleIpsChange}
                     value={selectedIps}
                     disabled={ipsList.length === 0}
                 >
