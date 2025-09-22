@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -16,6 +15,7 @@ import { saveAs } from 'file-saver';
 import type { KpiResults } from '@/lib/types';
 import { generateRecommendations } from '@/ai/flows/generate-recommendations-flow';
 import { MonthlyKpiChart } from '@/components/charts/MonthlyKpiChart';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 
 const availableFiles: Record<string, { name: string; path: string }[]> = {
@@ -34,8 +34,7 @@ const availableFiles: Record<string, { name: string; path: string }[]> = {
 
 type ChartDataItem = {
   name: string;
-  'Gestantes en Control': number;
-  'Captación Oportuna': number;
+  [key: string]: number | string;
 };
 
 export default function KpiPage() {
@@ -404,7 +403,20 @@ export default function KpiPage() {
         const worksheet = workbook.Sheets[sheetName];
         const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: false });
         
-        if (jsonData.length === 0) return { name: monthFile.name, 'Gestantes en Control': 0, 'Captación Oportuna': 0 };
+        const defaultResult = { 
+            name: monthFile.name, 
+            'Captación Oportuna': 0,
+            'Tamizaje VIH': 0,
+            'Tamizaje Sífilis': 0,
+            'Tamizaje Toxoplasma': 0,
+            'Tamizaje Hepatitis B': 0,
+            'Tamizaje Chagas': 0,
+            'Ecografías': 0,
+            'Nutrición': 0,
+            'Odontología': 0,
+        };
+        if (jsonData.length === 0) return defaultResult;
+
 
         const firstClean: any = {};
         Object.keys(jsonData[0]).forEach(k => { firstClean[cleanHeader(k)] = jsonData[0][k]; });
@@ -416,27 +428,75 @@ export default function KpiPage() {
 
         const controlHeader = pickHeader(firstClean, ["identificacion"]);
         const captacionHeader = pickHeader(firstClean, ["edad", "gest", "inicio", "control"]);
+        const vih1Header = pickHeader(firstClean, ["vih", "primer", "tamiz"]);
+        const vih2Header = pickHeader(firstClean, ["vih", "segundo", "tamiz"]);
+        const vih3Header = pickHeader(firstClean, ["vih", "tercer", "tamiz"]);
+        const sifilis1Header = pickHeader(firstClean, ["sifilis", "primera"]);
+        const sifilis2Header = pickHeader(firstClean, ["sifilis", "segunda"]);
+        const sifilis3Header = pickHeader(firstClean, ["sifilis", "tercera"]);
+        const toxoplasmaHeader = pickHeader(firstClean, ["toxoplasma"]);
+        const hbResultadoHeader = pickHeader(firstClean, ["hepatitis", "b", "resultado"]);
+        const hbFechaHeader = pickHeader(firstClean, ["hepatitis", "b", "fecha"]);
+        const chagasHeader = pickHeader(firstClean, ["chagas"]);
+        const eco1Header = pickHeader(firstClean, ["ecografia", "translucencia"]);
+        const eco2Header = pickHeader(firstClean, ["ecografia", "anomalias"]);
+        const eco3Header = pickHeader(firstClean, ["ecografia", "otras"]);
+        const nutricionHeader = pickHeader(firstClean, ["nutricion"]);
+        const odontologiaHeader = pickHeader(firstClean, ["odontolog"]);
         
         let controlCount = 0;
         let captacionCount = 0;
+        let sinDatosVihCount = 0;
+        let sinDatosSifilisCount = 0;
+        let sinDatosToxoplasmaCount = 0;
+        let sinDatosHbCount = 0;
+        let sinDatosChagasCount = 0;
+        let sinDatosEcografiaCount = 0;
+        let sinDatosNutricionCount = 0;
+        let sinDatosOdontologiaCount = 0;
         
         jsonData.forEach((row: any) => {
-          const cleanedRow: { [key: string]: any } = {};
-          for (const key in row) {
-            cleanedRow[cleanHeader(key)] = row[key];
-          }
-          if (cleanedRow[controlHeader] !== undefined && cleanedRow[controlHeader] !== "") {
-            controlCount++;
-          }
-          const captacionValue = cleanedRow[captacionHeader];
-          if (captacionValue !== undefined && captacionValue !== "" && !isNaN(parseFloat(captacionValue)) && parseFloat(captacionValue) < 10) {
-            captacionCount++;
-          }
+            const cleanedRow: { [key: string]: any } = {};
+            for (const key in row) { cleanedRow[cleanHeader(key)] = row[key]; }
+            if (cleanedRow[controlHeader]) controlCount++;
+            if (cleanedRow[captacionHeader] && parseFloat(cleanedRow[captacionHeader]) < 10) captacionCount++;
+
+            if (String(cleanedRow[vih1Header] || '').toLowerCase().includes("sin datos") && String(cleanedRow[vih2Header] || '').toLowerCase().includes("sin datos") && String(cleanedRow[vih3Header] || '').toLowerCase().includes("sin datos")) sinDatosVihCount++;
+            if (String(cleanedRow[sifilis1Header] || '').toLowerCase().includes("sin datos") && String(cleanedRow[sifilis2Header] || '').toLowerCase().includes("sin datos") && String(cleanedRow[sifilis3Header] || '').toLowerCase().includes("sin datos")) sinDatosSifilisCount++;
+            if (String(cleanedRow[toxoplasmaHeader] || '').toLowerCase().includes("sin datos")) sinDatosToxoplasmaCount++;
+            if (String(cleanedRow[hbResultadoHeader] || '').toLowerCase().includes("sin datos") && cleanedRow[hbFechaHeader]) sinDatosHbCount++;
+            if (String(cleanedRow[chagasHeader] || '').toLowerCase().includes("sin datos")) sinDatosChagasCount++;
+            if (String(cleanedRow[eco1Header] || '').toLowerCase().includes("sin datos") && String(cleanedRow[eco2Header] || '').toLowerCase().includes("sin datos") && String(cleanedRow[eco3Header] || '').toLowerCase().includes("sin datos")) sinDatosEcografiaCount++;
+            if (String(cleanedRow[nutricionHeader] || '').toLowerCase().includes("sin datos")) sinDatosNutricionCount++;
+            if (String(cleanedRow[odontologiaHeader] || '').toLowerCase().includes("sin datos")) sinDatosOdontologiaCount++;
         });
-        return { name: monthFile.name, 'Gestantes en Control': controlCount, 'Captación Oportuna': captacionCount };
+
+        const totalRegistros = jsonData.length;
+        const examenesVihCompletos = totalRegistros - sinDatosVihCount;
+        const examenesSifilisCompletos = totalRegistros - sinDatosSifilisCount;
+        const toxoplasmaValidos = totalRegistros - sinDatosToxoplasmaCount;
+        const examenesHbCompletos = totalRegistros - sinDatosHbCount;
+        const chagasResultadosValidos = totalRegistros - sinDatosChagasCount;
+        const ecografiasValidas = totalRegistros - sinDatosEcografiaCount;
+        const nutricionValidos = totalRegistros - sinDatosNutricionCount;
+        const odontologiaValidos = totalRegistros - sinDatosOdontologiaCount;
+
+        return {
+            name: monthFile.name,
+            'Captación Oportuna': controlCount > 0 ? (captacionCount / controlCount) * 100 : 0,
+            'Tamizaje VIH': controlCount > 0 ? (examenesVihCompletos / controlCount) * 100 : 0,
+            'Tamizaje Sífilis': controlCount > 0 ? (examenesSifilisCompletos / controlCount) * 100 : 0,
+            'Tamizaje Toxoplasma': controlCount > 0 ? (toxoplasmaValidos / controlCount) * 100 : 0,
+            'Tamizaje Hepatitis B': controlCount > 0 ? (examenesHbCompletos / controlCount) * 100 : 0,
+            'Tamizaje Chagas': controlCount > 0 ? (chagasResultadosValidos / controlCount) * 100 : 0,
+            'Ecografías': controlCount > 0 ? (ecografiasValidas / controlCount) * 100 : 0,
+            'Nutrición': controlCount > 0 ? (nutricionValidos / controlCount) * 100 : 0,
+            'Odontología': controlCount > 0 ? (odontologiaValidos / controlCount) * 100 : 0,
+        };
+
       } catch (error) {
         console.error(`Error processing file for chart: ${monthFile.name}`, error);
-        return { name: monthFile.name, 'Gestantes en Control': 0, 'Captación Oportuna': 0 };
+        return null;
       }
     });
 
@@ -445,6 +505,17 @@ export default function KpiPage() {
     setIsChartLoading(false);
   };
 
+  const chartGroups = [
+      { title: 'Resumen Mensual de Captación', dataKey: 'Captación Oportuna', color: 'hsl(var(--chart-1))' },
+      { title: 'Resumen Mensual de Tamizaje VIH', dataKey: 'Tamizaje VIH', color: 'hsl(var(--chart-2))' },
+      { title: 'Resumen Mensual de Tamizaje Sífilis', dataKey: 'Tamizaje Sífilis', color: 'hsl(var(--chart-3))' },
+      { title: 'Resumen Mensual de Tamizaje Toxoplasma', dataKey: 'Tamizaje Toxoplasma', color: 'hsl(var(--chart-4))' },
+      { title: 'Resumen Mensual de Tamizaje Hepatitis B', dataKey: 'Tamizaje Hepatitis B', color: 'hsl(var(--chart-5))' },
+      { title: 'Resumen Mensual de Tamizaje Chagas', dataKey: 'Tamizaje Chagas', color: 'hsl(var(--chart-1))' },
+      { title: 'Resumen Mensual de Ecografías', dataKey: 'Ecografías', color: 'hsl(var(--chart-2))' },
+      { title: 'Resumen Mensual de Nutrición', dataKey: 'Nutrición', color: 'hsl(var(--chart-3))' },
+      { title: 'Resumen Mensual de Odontología', dataKey: 'Odontología', color: 'hsl(var(--chart-4))' },
+  ];
 
   const handleFileChange = (value: string) => {
     setSelectedFile(value);
@@ -978,10 +1049,27 @@ export default function KpiPage() {
 
           {isChartLoading && <p>Cargando datos para gráficos...</p>}
           {chartData.length > 0 && !isChartLoading && (
-            <div className="mt-4">
-                <h3 className="text-lg font-semibold mb-2 text-center">Resumen Mensual de Captación ({selectedYear})</h3>
-                <MonthlyKpiChart data={chartData} />
-            </div>
+             <div className="mt-4">
+                <Carousel
+                    opts={{
+                        align: "start",
+                    }}
+                    className="w-full"
+                >
+                    <CarouselContent>
+                        {chartGroups.map((chartInfo, index) => (
+                            <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/1">
+                                <div className="p-1">
+                                    <h3 className="text-lg font-semibold mb-2 text-center">{chartInfo.title} ({selectedYear})</h3>
+                                    <MonthlyKpiChart data={chartData} dataKey={chartInfo.dataKey} fillColor={chartInfo.color} />
+                                </div>
+                            </CarouselItem>
+                        ))}
+                    </CarouselContent>
+                    <CarouselPrevious />
+                    <CarouselNext />
+                </Carousel>
+             </div>
           )}
 
           {hasCalculated && (
@@ -1025,7 +1113,7 @@ export default function KpiPage() {
                 <div className="grid gap-1.5">
                 <Label htmlFor="ips-filter">IPS Primaria</Label>
                 <Select
-                    onValueChange={handleIpsChange}
+                    onValue-change={handleIpsChange}
                     value={selectedIps}
                     disabled={ipsList.length === 0}
                 >
@@ -1091,5 +1179,3 @@ export default function KpiPage() {
     </div>
   );
 }
-
-    
