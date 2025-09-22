@@ -1,9 +1,7 @@
-
 // src/lib/informe-riesgo-pdf.ts
 // Genera un PDF con el esquema solicitado usando pdfmake.
 // A4, cuerpo 12 pt, títulos en negrilla. Si registras Arial, la usará;
 // de lo contrario usará la fuente por defecto (Roboto).
-import type pdfMake from "pdfmake/build/pdfmake";
 import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 
 export type Texto = string | (string | { text: string; bold?: boolean })[];
@@ -31,10 +29,12 @@ export interface InformeDatos {
     TFG_E5: number;
     TFG_TOTAL: number;
   };
+  analisisAnual?: string;
 }
 
 export interface PdfImages {
   background: string;
+  charts?: Array<{ id: string; dataUrl: string }>;
 }
 
 
@@ -72,67 +72,87 @@ export function buildDocDefinition(data: InformeDatos, images?: PdfImages): TDoc
   const h = (t: string) => ({ text: t, style: "h1", margin: [0, 10, 0, 4] });
   const p = (t: Texto) => ({ text: t as any, style: "p", margin: [0, 0, 0, 4] });
 
-  let mainContent: any[] = [
-      // Encabezado
-      h("Encabezado"),
-      {
-        style: "p",
-        margin: [0, 0, 0, 6],
-        table: {
-          widths: ["auto", "*"],
-          body: [
-            [{ text: "Proceso:", bold: true }, data.encabezado.proceso],
-            [{ text: "Formato:", bold: true }, data.encabezado.formato],
-            [{ text: "Entidad evaluada:", bold: true }, data.encabezado.entidad],
-            [{ text: "Vigencia del análisis:", bold: true }, data.encabezado.vigencia],
-            [{ text: "Lugar/Fecha de evaluación:", bold: true }, data.encabezado.lugarFecha],
-          ],
-        },
-        layout: "lightHorizontalLines",
-      },
-
-      // Referencia
-      h("Referencia"),
-      p(data.referencia),
-
-      // Análisis resumido
-      h("Análisis resumido"),
-      {
-        ul: data.analisisResumido.map((t) => ({ text: t, style: "p" })),
-        margin: [0, 0, 0, 8],
-      },
-
-      // Datos a extraer
-      h("Datos a extraer"),
-      {
-        table: {
-          headerRows: 1,
-          widths: ["*", "auto"],
-          body: [
-            [
-              { text: "Campo", style: "tableHeader" },
-              { text: "Valor", style: "tableHeader" },
+  let mainContent: any[] = [];
+  
+  if (data.analisisAnual) {
+     mainContent.push(
+        h("Análisis Anual de Gestión del Riesgo Materno-Perinatal"),
+        p(data.analisisAnual),
+     );
+     if (images?.charts) {
+        mainContent.push({ text: "Visualización de Indicadores Anuales", style: "h1", margin: [0, 15, 0, 5], pageBreak: 'before' });
+        images.charts.forEach(chart => {
+            mainContent.push({
+                image: chart.dataUrl,
+                width: 500,
+                alignment: 'center',
+                margin: [0, 0, 0, 15]
+            });
+        });
+     }
+  } else {
+    mainContent = [
+        // Encabezado
+        h("Encabezado"),
+        {
+          style: "p",
+          margin: [0, 0, 0, 6],
+          table: {
+            widths: ["auto", "*"],
+            body: [
+              [{ text: "Proceso:", bold: true }, data.encabezado.proceso],
+              [{ text: "Formato:", bold: true }, data.encabezado.formato],
+              [{ text: "Entidad evaluada:", bold: true }, data.encabezado.entidad],
+              [{ text: "Vigencia del análisis:", bold: true }, data.encabezado.vigencia],
+              [{ text: "Lugar/Fecha de evaluación:", bold: true }, data.encabezado.lugarFecha],
             ],
-            ...data.datosAExtraer.map((r) => [r.label, r.valor]),
-          ],
+          },
+          layout: "lightHorizontalLines",
         },
-        layout: "lightHorizontalLines",
-        margin: [0, 0, 0, 8],
-      },
 
-      // Calidad del dato
-      h("Calidad del dato (hallazgos)"),
-      p("Se evidencia baja calidad en el reporte de la base de datos de la ruta materno perinatal, por lo cual se hace necesario reportar la información dentro de la data urgentemente teniendo en cuenta los siguientes hallazgos:"),
-      { ol: data.hallazgosCalidad.map(t => ({text: t, style: "p"})) },
+        // Referencia
+        h("Referencia"),
+        p(data.referencia),
 
-      // Recomendaciones
-      h("RECOMENDACIONES"),
-      { ul: data.recomendaciones.map(t => ({text: t, style: "p"})) },
+        // Análisis resumido
+        h("Análisis resumido"),
+        {
+          ul: data.analisisResumido.map((t) => ({ text: t, style: "p" })),
+          margin: [0, 0, 0, 8],
+        },
 
-      // Observaciones
-      h("OBSERVACIONES"),
-      { ul: data.observaciones.map(t => ({text: t, style: "p"})) }
-    ];
+        // Datos a extraer
+        h("Datos a extraer"),
+        {
+          table: {
+            headerRows: 1,
+            widths: ["*", "auto"],
+            body: [
+              [
+                { text: "Campo", style: "tableHeader" },
+                { text: "Valor", style: "tableHeader" },
+              ],
+              ...data.datosAExtraer.map((r) => [r.label, r.valor]),
+            ],
+          },
+          layout: "lightHorizontalLines",
+          margin: [0, 0, 0, 8],
+        },
+
+        // Calidad del dato
+        h("Calidad del dato (hallazgos)"),
+        p("Se evidencia baja calidad en el reporte de la base de datos de la ruta materno perinatal, por lo cual se hace necesario reportar la información dentro de la data urgentemente teniendo en cuenta los siguientes hallazgos:"),
+        { ol: data.hallazgosCalidad.map(t => ({text: t, style: "p"})) },
+
+        // Recomendaciones
+        h("RECOMENDACIONES"),
+        { ul: data.recomendaciones.map(t => ({text: t, style: "p"})) },
+
+        // Observaciones
+        h("OBSERVACIONES"),
+        { ul: data.observaciones.map(t => ({text: t, style: "p"})) }
+      ];
+  }
     
     if (data.kpisTFG) {
     mainContent.push(
@@ -224,28 +244,27 @@ export async function generarInformePDF(
   nombre = "Informe_Evaluacion_Riesgo.pdf",
   obtenerBlob = false
 ): Promise<Blob | void> {
-  const pdfMakePromise = import("pdfmake/build/pdfmake");
-  const pdfFontsPromise = import("pdfmake/build/vfs_fonts");
+  const pdfMakeModule = await import("pdfmake/build/pdfmake");
+  const pdfFontsModule = await import("pdfmake/build/vfs_fonts");
 
-  const [pdfMake, pdfFonts] = await Promise.all([
-    pdfMakePromise,
-    pdfFontsPromise,
-  ]);
-
-  if (pdfMake && pdfFonts && pdfFonts.default) {
-    pdfMake.default.vfs = pdfFonts.default.pdfMake.vfs;
-    await registerArialIfAvailable(pdfMake.default);
-
-    const docDefinition = buildDocDefinition(datos, images);
-    
-    if (obtenerBlob) {
-      return new Promise<Blob>((resolve) => {
-        pdfMake.default.createPdf(docDefinition).getBlob(blob => resolve(blob));
-      });
-    } else {
-      pdfMake.default.createPdf(docDefinition).download(nombre);
-    }
+  const pdfMake = pdfMakeModule.default;
+  
+  // Asignación correcta y robusta de las fuentes
+  if (pdfMake && pdfFontsModule.default) {
+    pdfMake.vfs = pdfFontsModule.default.pdfMake.vfs;
   } else {
-    throw new Error("Could not load pdfmake or vfs_fonts.");
+     throw new Error("Could not load pdfmake or vfs_fonts.");
+  }
+  
+  await registerArialIfAvailable(pdfMake);
+
+  const docDefinition = buildDocDefinition(datos, images);
+  
+  if (obtenerBlob) {
+    return new Promise<Blob>((resolve) => {
+      pdfMake.createPdf(docDefinition).getBlob(blob => resolve(blob));
+    });
+  } else {
+    pdfMake.createPdf(docDefinition).download(nombre);
   }
 }

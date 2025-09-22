@@ -48,6 +48,6 @@ export interface InformeDatos {
       TFG_E5: number;
       TFG_TOTAL: number;
     };
-    recomendacionesAI?: string[];
+    analisisAnual?: string;
   }
   

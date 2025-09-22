@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import * as XLSX from "xlsx";
 import { saveAs } from 'file-saver';
 import { Button } from "@/components/ui/button";
@@ -14,8 +14,10 @@ import type { InformeDatos, PdfImages } from '@/lib/informe-riesgo-pdf';
 import JSZip from 'jszip';
 import type { KpiResults } from '@/lib/types';
 import { generateRecommendations } from '@/ai/flows/generate-recommendations-flow';
+import { generateAnnualReport } from '@/ai/flows/generate-annual-report-flow';
 import { MonthlyKpiChart } from '@/components/charts/MonthlyKpiChart';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import html2canvas from 'html2canvas';
 
 
 const availableFiles: Record<string, { name: string; path: string }[]> = {
@@ -81,6 +83,8 @@ export default function KpiPage() {
 
   const [chartData, setChartData] = useState<ChartDataItem[]>([]);
   const [isChartLoading, setIsChartLoading] = useState(false);
+  
+  const chartContainerRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     if (hasCalculated) {
@@ -585,7 +589,7 @@ export default function KpiPage() {
     setSelectedIps(newIps);
   }
   
-  const prepararDatosParaPdf = (kpiData: KpiResults, ips: string, recomendacionesAI?: string[]): InformeDatos => {
+  const prepararDatosParaPdf = (kpiData: KpiResults, ips: string, recomendacionesAI?: string[], analisisAnual?: string): InformeDatos => {
     return {
         encabezado: {
             proceso: "Seguimiento a la Gestión del Riesgo en Salud",
@@ -608,6 +612,7 @@ export default function KpiPage() {
             { label: "Exámenes Sífilis Completos", valor: String(kpiData.examenesSifilisCompletosResult) },
             { label: "% Tamizaje Sífilis", valor: `${kpiData.resultadoTamizajeSifilisResult?.toFixed(2)}%` },
         ],
+        analisisAnual: analisisAnual,
         hallazgosCalidad: [
             "Completar datos clínicos clave que permitan el adecuado seguimiento de la gestante, tales como la fecha de última menstruación, fundamental para el cálculo gestacional.",
             "Asegurar la clasificación del riesgo obstétrico durante el control prenatal, de acuerdo con los lineamientos establecidos (ARO/BRO).",
@@ -703,7 +708,7 @@ export default function KpiPage() {
         setError("No se pudo cargar la imagen de fondo para los PDFs.");
     }
     
-    const images: PdfImages | undefined = backgroundImage ? { background: backgroundImage } : undefined;
+    const images: PdfImages = { background: backgroundImage || '' };
 
     for (const ips of ipsList) {
         const kpiDataForIps = await calculateKpiForFilter('', '', ips); 
@@ -980,6 +985,72 @@ const handleDownloadConsolidatedXls = async () => {
 
     setIsLoading(false);
   };
+  
+  const handleGenerateAnnualReport = async () => {
+    if (!chartData.length || !selectedYear) {
+      setError("Por favor, genera primero los gráficos de la vigencia para tener los datos anuales.");
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+
+    try {
+        // 1. Generate AI Analysis
+        const analysis = await generateAnnualReport({
+            year: selectedYear,
+            monthlyData: chartData as any, // Cast because the object shape is compatible
+            ips: selectedIps || "Consolidado General"
+        });
+
+        // 2. Capture Chart Images
+        const chartImages: { id: string; dataUrl: string }[] = [];
+        if (chartContainerRef.current) {
+            const chartElements = chartContainerRef.current.querySelectorAll('.recharts-responsive-container');
+            for (let i = 0; i < chartElements.length; i++) {
+                const canvas = await html2canvas(chartElements[i] as HTMLElement);
+                chartImages.push({
+                    id: `chart${i + 1}`,
+                    dataUrl: canvas.toDataURL('image/png'),
+                });
+            }
+        }
+        
+        // 3. Get background image
+        let backgroundImage: string | undefined;
+        try {
+            const imageResponse = await fetch('/imagenes/IMAGENEN UNIFICADA.jpg');
+            const imageBlob = await imageResponse.blob();
+            backgroundImage = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(imageBlob);
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = (error) => reject(error);
+            });
+        } catch(e) {
+            console.error("No se pudo cargar la imagen de fondo", e);
+        }
+
+        const images: PdfImages = {
+          background: backgroundImage || '',
+          charts: chartImages.length > 0 ? chartImages : undefined
+        };
+
+        // 4. Prepare data for PDF
+        const datosParaPdf = prepararDatosParaPdf({} as KpiResults, selectedIps || "Dusakawi EPSI (Consolidado)", undefined, analysis);
+        
+        // Use a more descriptive name
+        const fileName = `Informe_Anual_IA_${selectedYear}.pdf`;
+
+        // 5. Generate PDF
+        await generarInformePDF(datosParaPdf, images, fileName);
+
+    } catch (err: any) {
+        console.error("Error generating annual AI report:", err);
+        setError(err.message || "Ocurrió un error al generar el informe anual con IA.");
+    } finally {
+        setIsLoading(false);
+    }
+  };
 
   const kpiGroups = [
     {
@@ -1114,7 +1185,7 @@ const handleDownloadConsolidatedXls = async () => {
 
           {isChartLoading && <p>Cargando datos para gráficos...</p>}
           {chartData.length > 0 && !isChartLoading && (
-             <div className="mt-4">
+             <div className="mt-4" ref={chartContainerRef}>
                 <Carousel
                     opts={{
                         align: "start",
@@ -1239,6 +1310,9 @@ const handleDownloadConsolidatedXls = async () => {
                 </Button>
                 <Button onClick={handleDownloadConsolidatedXls} className="flex-1" variant="outline" disabled={isLoading || !hasCalculated}>
                     {isLoading ? "Generando..." : "Descargar Consolidado (XLSX)"}
+                </Button>
+                 <Button onClick={handleGenerateAnnualReport} className="flex-1" variant="outline" disabled={isLoading || chartData.length === 0}>
+                    {isLoading ? "Generando Informe IA..." : "Generar Informe Anual con IA"}
                 </Button>
             </div>
             )}
