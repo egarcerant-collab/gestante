@@ -26,7 +26,12 @@ const availableFiles: Record<string, { name: string; path: string }[]> = {
     "2025": [
       { name: "Enero", path: "/BASES/2025/ENERO.xlsx" },
       { name: "Febrero", path: "/BASES/2025/FEBRERO.xlsx" },
-      { name: "Marzo", path: "/BASES/2025/MARZO.xlsx" }
+      { name: "Marzo", path: "/BASES/2025/MARZO.xlsx" },
+      { name: "Abril", path: "/BASES/2025/ABRIL.xlsx" },
+      { name: "Mayo", path: "/BASES/2025/MAYO.xlsx" },
+      { name: "Junio", path: "/BASES/2025/JUNIO.xlsx" },
+      { name: "Julio", path: "/BASES/2025/JULIO.xlsx" },
+      { name: "Agosto", path: "/BASES/2025/AGOSTO.xlsx" }
     ]
   };
 
