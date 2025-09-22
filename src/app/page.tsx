@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { calcularNumeradorGinecologia, calcularDenominadorGinecologia } from '@/lib/kpi-helpers';
+import { descargarInformePDF, InformeDatos } from '@/lib/informe-riesgo-pdf';
 
 export default function KpiPage() {
   const [selectedFile, setSelectedFile] = useState<string>("");
@@ -360,6 +361,57 @@ export default function KpiPage() {
       setSelectedMunicipality(newMuni);
   }
 
+  const handleGeneratePdf = async () => {
+    if (!kpiResult) return;
+
+    // 1. Cargar imagen de fondo y convertirla a base64
+    let backgroundImage = "";
+    try {
+        const response = await fetch('/imagenes/IMAGENEN UNIFICADA.jpg');
+        const blob = await response.blob();
+        const reader = new FileReader();
+        backgroundImage = await new Promise((resolve, reject) => {
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (error) {
+        console.error("Error al cargar la imagen de fondo:", error);
+        // Continuar sin imagen de fondo si falla
+    }
+
+
+    const datosParaPdf: InformeDatos = {
+        encabezado: {
+            proceso: "Seguimiento a la Gestión del Riesgo en Salud",
+            formato: "Informe de Evaluación de Indicadores",
+            entidad: "Entidad Evaluada (Ejemplo)",
+            vigencia: selectedFile.split('/').pop()?.split('.')[0] || 'N/A',
+            lugarFecha: `BOGOTÁ D.C, ${new Date().toLocaleDateString('es-CO')}`
+        },
+        referencia: "Análisis de indicadores de gestantes basado en el archivo cargado.",
+        analisisResumido: [
+            `Total de gestantes en control: ${gestantesControlResult}`,
+            `Gestantes con captación oportuna: ${kpiResult} (${controlPercentageResult?.toFixed(2)}%)`
+        ],
+        datosAExtraer: [
+            { label: "Gestantes en Control", valor: String(gestantesControlResult) },
+            { label: "Captación Oportuna (< 10 sem)", valor: String(kpiResult) },
+            { label: "% Captación Oportuna", valor: `${controlPercentageResult?.toFixed(2)}%` },
+            { label: "Exámenes VIH Completos", valor: String(examenesVihCompletosResult) },
+            { label: "% Tamizaje VIH", valor: `${resultadoTamizajeVihResult?.toFixed(2)}%` },
+            { label: "Exámenes Sífilis Completos", valor: String(examenesSifilisCompletosResult) },
+            { label: "% Tamizaje Sífilis", valor: `${resultadoTamizajeSifilisResult?.toFixed(2)}%` },
+        ],
+        calidadDato: ["Se requiere mejorar el registro de fechas de tamizajes.", "Existen registros sin dato en la clasificación de riesgo."],
+        observaciones: ["Se recomienda seguimiento a gestantes sin controles completos."],
+        compromisos: ["Realizar capacitación al personal sobre el correcto diligenciamiento de la información."],
+    };
+
+    await descargarInformePDF(datosParaPdf, { background: backgroundImage });
+  };
+
+
   const kpiGroups = [
     {
       title: "Indicadores de Captación",
@@ -507,9 +559,16 @@ export default function KpiPage() {
               </>
             )}
           </div>
-          <Button onClick={() => calculateKpi(true)} className="w-full" disabled={isLoading || !selectedFile}>
-            {isLoading ? "Calculando..." : "Calcular Indicadores"}
-          </Button>
+          <div className="flex gap-4">
+            <Button onClick={() => calculateKpi(true)} className="w-full" disabled={isLoading || !selectedFile}>
+              {isLoading ? "Calculando..." : "Calcular Indicadores"}
+            </Button>
+            {hasCalculated && (
+              <Button onClick={handleGeneratePdf} className="w-full" variant="outline" disabled={isLoading}>
+                Generar Informe PDF
+              </Button>
+            )}
+          </div>
         </CardContent>
         <CardFooter className="flex flex-col items-start gap-4">
           {error && (
