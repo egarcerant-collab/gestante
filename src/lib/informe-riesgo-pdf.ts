@@ -224,22 +224,28 @@ export async function generarInformePDF(
   nombre = "Informe_Evaluacion_Riesgo.pdf",
   obtenerBlob = false
 ): Promise<Blob | void> {
-  const pdfMake = (await import("pdfmake/build/pdfmake")).default;
-  const vfsFonts = (await import("pdfmake/build/vfs_fonts")).default;
+  const pdfMakePromise = import("pdfmake/build/pdfmake");
+  const pdfFontsPromise = import("pdfmake/build/vfs_fonts");
 
-  if (pdfMake && vfsFonts) {
-    pdfMake.vfs = vfsFonts.pdfMake.vfs;
-  }
+  const [pdfMake, pdfFonts] = await Promise.all([
+    pdfMakePromise,
+    pdfFontsPromise,
+  ]);
 
-  await registerArialIfAvailable(pdfMake);
+  if (pdfMake && pdfFonts && pdfFonts.default) {
+    pdfMake.default.vfs = pdfFonts.default.pdfMake.vfs;
+    await registerArialIfAvailable(pdfMake.default);
 
-  const docDef = buildDocDefinition(datos, images);
-  
-  if (obtenerBlob) {
-    return new Promise<Blob>((resolve) => {
-      pdfMake.createPdf(docDef).getBlob(blob => resolve(blob));
-    });
+    const docDefinition = buildDocDefinition(datos, images);
+    
+    if (obtenerBlob) {
+      return new Promise<Blob>((resolve) => {
+        pdfMake.default.createPdf(docDefinition).getBlob(blob => resolve(blob));
+      });
+    } else {
+      pdfMake.default.createPdf(docDefinition).download(nombre);
+    }
   } else {
-    pdfMake.createPdf(docDef).download(nombre);
+    throw new Error("Could not load pdfmake or vfs_fonts.");
   }
 }
