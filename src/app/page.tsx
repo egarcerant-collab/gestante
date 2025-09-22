@@ -436,7 +436,7 @@ export default function KpiPage() {
 
     const localPdfMake = (await import("pdfmake/build/pdfmake")).default;
     const localVfsFonts = (await import("pdfmake/build/vfs_fonts")).default;
-    localPdfMake.vfs = localVfsFonts;
+    localPdfMake.vfs = localVfsFonts.pdfMake.vfs;
 
 
     for (const dept of departments) {
@@ -479,12 +479,19 @@ export default function KpiPage() {
 
         const departmentHeaderRaw = originalHeaders[pickHeader(firstClean, ["departamento_residencia"])];
         const municipalityHeaderRaw = originalHeaders[pickHeader(firstClean, ["municipio_de_residencia"])];
+        const ipsHeaderRaw = originalHeaders[pickHeader(firstClean, ["nombre", "ips", "primaria"])];
+
 
         const filteredData = allData.filter(row => {
             const rowDept = String(row[departmentHeaderRaw] || '').trim().toUpperCase();
             const rowMuni = String(row[municipalityHeaderRaw] || '').trim().toUpperCase();
+            const rowIps = String(row[ipsHeaderRaw] || '').trim().toUpperCase();
+
             const deptMatch = !department || rowDept === department;
+            // When filtering for department, municipality can be anything.
+            // When filtering for municipality, we need to match it.
             const muniMatch = !municipality || rowMuni === municipality;
+
             return deptMatch && muniMatch;
         });
 
@@ -835,5 +842,3 @@ export default function KpiPage() {
     </div>
   );
 }
-
-    
