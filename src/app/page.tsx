@@ -963,13 +963,18 @@ export default function KpiPage() {
             </div>
           </div>
           
-          {selectedYear && (
-            <div className="flex gap-4 mt-4">
-              <Button onClick={handleGenerateChart} className="w-full" disabled={isChartLoading || !selectedYear}>
-                {isChartLoading ? "Generando Gráfico..." : "Generar Gráfico Anual"}
-              </Button>
-            </div>
-          )}
+          <div className="flex flex-col md:flex-row gap-4 mt-4">
+            {selectedYear && (
+                <Button onClick={handleGenerateChart} className="flex-1" disabled={isChartLoading || !selectedYear}>
+                    {isChartLoading ? "Generando Gráfico..." : "Generar Gráficos Vigencia"}
+                </Button>
+            )}
+            {selectedFile && (
+                <Button onClick={() => calculateKpi(true)} className="flex-1" disabled={isLoading || !selectedFile}>
+                {isLoading ? "Calculando..." : "Calcular Indicadores"}
+                </Button>
+            )}
+          </div>
 
           {isChartLoading && <p>Cargando datos para gráficos...</p>}
           {chartData.length > 0 && !isChartLoading && (
@@ -979,72 +984,63 @@ export default function KpiPage() {
             </div>
           )}
 
-          {selectedFile && (
-            <>
-            <div className="flex gap-4 mt-4">
-                <Button onClick={() => calculateKpi(true)} className="w-full" disabled={isLoading || !selectedFile}>
-                {isLoading ? "Calculando..." : "Calcular Indicadores del Mes"}
-                </Button>
-            </div>
-            {hasCalculated && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                    <div className="grid gap-1.5">
-                    <Label htmlFor="department-filter">Departamento</Label>
-                    <Select
-                        onValueChange={handleDepartmentChange}
-                        value={selectedDepartment}
-                        disabled={departments.length === 0}
-                    >
-                        <SelectTrigger id="department-filter">
-                        <SelectValue placeholder="Todos" />
-                        </SelectTrigger>
-                        <SelectContent>
-                        <SelectItem value="todos">Todos</SelectItem>
-                        {departments.map(dept => (
-                            <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                        ))}
-                        </SelectContent>
-                    </Select>
-                    </div>
-                    <div className="grid gap-1.5">
-                    <Label htmlFor="municipality-filter">Municipio</Label>
-                    <Select
-                        onValueChange={handleMunicipalityChange}
-                        value={selectedMunicipality}
-                        disabled={municipalities.length === 0}
-                    >
-                        <SelectTrigger id="municipality-filter">
-                        <SelectValue placeholder="Todos" />
-                        </SelectTrigger>
-                        <SelectContent>
-                        <SelectItem value="todos">Todos</SelectItem>
-                        {municipalities.map(muni => (
-                            <SelectItem key={muni} value={muni}>{muni}</SelectItem>
-                        ))}
-                        </SelectContent>
-                    </Select>
-                    </div>
-                    <div className="grid gap-1.5">
-                    <Label htmlFor="ips-filter">IPS Primaria</Label>
-                    <Select
-                        onValueChange={handleIpsChange}
-                        value={selectedIps}
-                        disabled={ipsList.length === 0}
-                    >
-                        <SelectTrigger id="ips-filter">
-                        <SelectValue placeholder="Todas" />
-                        </SelectTrigger>
-                        <SelectContent>
-                        <SelectItem value="todos">Todas</SelectItem>
-                        {ipsList.map(ips => (
-                            <SelectItem key={ips} value={ips}>{ips}</SelectItem>
-                        ))}
-                        </SelectContent>
-                    </Select>
-                    </div>
+          {hasCalculated && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div className="grid gap-1.5">
+                <Label htmlFor="department-filter">Departamento</Label>
+                <Select
+                    onValueChange={handleDepartmentChange}
+                    value={selectedDepartment}
+                    disabled={departments.length === 0}
+                >
+                    <SelectTrigger id="department-filter">
+                    <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {departments.map(dept => (
+                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
                 </div>
-            )}
-            </>
+                <div className="grid gap-1.5">
+                <Label htmlFor="municipality-filter">Municipio</Label>
+                <Select
+                    onValueChange={handleMunicipalityChange}
+                    value={selectedMunicipality}
+                    disabled={municipalities.length === 0}
+                >
+                    <SelectTrigger id="municipality-filter">
+                    <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {municipalities.map(muni => (
+                        <SelectItem key={muni} value={muni}>{muni}</SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+                </div>
+                <div className="grid gap-1.5">
+                <Label htmlFor="ips-filter">IPS Primaria</Label>
+                <Select
+                    onValueChange={handleIpsChange}
+                    value={selectedIps}
+                    disabled={ipsList.length === 0}
+                >
+                    <SelectTrigger id="ips-filter">
+                    <SelectValue placeholder="Todas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value="todos">Todas</SelectItem>
+                    {ipsList.map(ips => (
+                        <SelectItem key={ips} value={ips}>{ips}</SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+                </div>
+            </div>
           )}
 
 
@@ -1096,5 +1092,4 @@ export default function KpiPage() {
   );
 }
 
-    
     
