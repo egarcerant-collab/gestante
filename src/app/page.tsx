@@ -566,11 +566,6 @@ export default function KpiPage() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col items-start gap-4">
-          {hasCalculated && (
-              <Button onClick={handleGeneratePdf} className="w-full" variant="outline" disabled={isLoading}>
-                Generar Informe PDF
-              </Button>
-            )}
           {error && (
             <Alert variant="destructive">
               <AlertTitle>Error</AlertTitle>
@@ -601,6 +596,11 @@ export default function KpiPage() {
               </div>
             </div>
           ))}
+          {hasCalculated && (
+              <Button onClick={handleGeneratePdf} className="w-full mt-4" variant="outline" disabled={isLoading}>
+                Generar Informe PDF
+              </Button>
+            )}
         </CardFooter>
       </Card>
     </div>
