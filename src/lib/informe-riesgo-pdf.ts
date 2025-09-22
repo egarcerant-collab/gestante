@@ -5,7 +5,6 @@
 import type pdfMake from "pdfmake/build/pdfmake";
 import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 
-
 export type Texto = string | (string | { text: string; bold?: boolean })[];
 
 export interface InformeDatos {
@@ -220,14 +219,14 @@ export function buildDocDefinition(data: InformeDatos, images?: PdfImages): TDoc
 // ------------------------------------------------------------
 export async function generarInformePDF(
   datos: InformeDatos,
-  images?: PdfImages,
+  images: PdfImages | undefined,
   nombre = "Informe_Evaluacion_Riesgo.pdf",
   obtenerBlob = false
 ): Promise<Blob | void> {
   const pdfMake = (await import("pdfmake/build/pdfmake")).default;
   const vfsFonts = (await import("pdfmake/build/vfs_fonts")).default;
 
-  pdfMake.vfs = vfsFonts;
+  pdfMake.vfs = vfsFonts.pdfMake.vfs;
 
   await registerArialIfAvailable(pdfMake);
 

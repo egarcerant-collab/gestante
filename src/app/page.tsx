@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { calcularNumeradorGinecologia, calcularDenominadorGinecologia } from '@/lib/kpi-helpers';
-import { generarInformePDF, InformeDatos, buildDocDefinition } from '@/lib/informe-riesgo-pdf';
+import { generarInformePDF, InformeDatos, PdfImages } from '@/lib/informe-riesgo-pdf';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import type { KpiResults } from '@/lib/types';
@@ -470,30 +470,25 @@ export default function KpiPage() {
         resultadoOdontologiaResult, ginecologiaResult, denominadorGinecologiaResult, porcentajeGinecologiaResult
     };
     
-    let backgroundImage = "";
     try {
-        const response = await fetch('/imagenes/IMAGENEN UNIFICADA.jpg');
-        const blob = await response.blob();
+        const imageResponse = await fetch('/imagenes/IMAGENEN UNIFICADA.jpg');
+        const imageBlob = await imageResponse.blob();
         const reader = new FileReader();
-        backgroundImage = await new Promise((resolve, reject) => {
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
-    } catch (error) {
-        console.error("Error al cargar la imagen de fondo:", error);
-    }
+        reader.readAsDataURL(imageBlob);
+        reader.onloadend = async () => {
+            const base64data = reader.result;
+            const images: PdfImages = { background: base64data as string };
 
+            const aiRecommendations = await generateRecommendations(currentKpiData);
+            const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General", aiRecommendations);
+            await generarInformePDF(datosParaPdf, images);
+        };
 
-    try {
-      const aiRecommendations = await generateRecommendations(currentKpiData);
-      const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General", aiRecommendations);
-      await generarInformePDF(datosParaPdf, { background: backgroundImage });
     } catch (error) {
-        console.error("Error generando recomendaciones de IA:", error);
-        setError("No se pudieron generar las recomendaciones de la IA. Se usará un texto predeterminado.");
+        console.error("Error generando el informe:", error);
+        setError("Error al cargar la imagen de fondo o generar las recomendaciones. Usando valores por defecto.");
         const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General");
-        await generarInformePDF(datosParaPdf, { background: backgroundImage });
+        await generarInformePDF(datosParaPdf, undefined);
     } finally {
         setIsLoading(false);
     }
@@ -507,19 +502,22 @@ export default function KpiPage() {
     setIsLoading(true);
     const zip = new JSZip();
 
-    let backgroundImage = "";
+    let backgroundImage: string | undefined;
     try {
-        const response = await fetch('/imagenes/IMAGENEN UNIFICADA.jpg');
-        const blob = await response.blob();
-        const reader = new FileReader();
+        const imageResponse = await fetch('/imagenes/IMAGENEN UNIFICADA.jpg');
+        const imageBlob = await imageResponse.blob();
         backgroundImage = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(imageBlob);
             reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
+            reader.onerror = (error) => reject(error);
         });
-    } catch (error) {
-        console.error("Error al cargar la imagen de fondo:", error);
+    } catch(e) {
+        console.error("No se pudo cargar la imagen de fondo", e);
+        setError("No se pudo cargar la imagen de fondo para los PDFs.");
     }
+    
+    const images: PdfImages | undefined = backgroundImage ? { background: backgroundImage } : undefined;
 
     for (const ips of ipsList) {
         const kpiDataForIps = await calculateKpiForFilter('', '', ips); 
@@ -527,7 +525,7 @@ export default function KpiPage() {
         try {
             const aiRecommendations = await generateRecommendations(kpiDataForIps);
             const datosParaPdf = prepararDatosParaPdf(kpiDataForIps, ips, aiRecommendations);
-            const blob = await generarInformePDF(datosParaPdf, { background: backgroundImage }, '', true);
+            const blob = await generarInformePDF(datosParaPdf, images, '', true);
 
             if (blob) {
                 const fileName = `Informe_Riesgo_${ips.replace(/\s/g, '_')}.pdf`;
@@ -535,9 +533,8 @@ export default function KpiPage() {
             }
         } catch (aiError) {
             console.error(`Error generando recomendaciones de IA para ${ips}:`, aiError);
-            // Si la IA falla, genera el PDF con recomendaciones por defecto
             const datosParaPdf = prepararDatosParaPdf(kpiDataForIps, ips);
-            const blob = await generarInformePDF(datosParaPdf, { background: backgroundImage }, '', true);
+            const blob = await generarInformePDF(datosParaPdf, images, '', true);
             if (blob) {
                 const fileName = `Informe_Riesgo_${ips.replace(/\s/g, '_')}_sin_IA.pdf`;
                 zip.file(fileName, blob);
@@ -938,5 +935,3 @@ export default function KpiPage() {
     </div>
   );
 }
-
-    
