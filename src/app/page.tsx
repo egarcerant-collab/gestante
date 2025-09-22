@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import * as XLSX from "xlsx";
+import { saveAs } from 'file-saver';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -11,7 +12,6 @@ import { calcularNumeradorGinecologia, calcularDenominadorGinecologia } from '@/
 import { generarInformePDF } from '@/lib/informe-riesgo-pdf';
 import type { InformeDatos, PdfImages } from '@/lib/informe-riesgo-pdf';
 import JSZip from 'jszip';
-import { saveAs } from 'file-saver';
 import type { KpiResults } from '@/lib/types';
 import { generateRecommendations } from '@/ai/flows/generate-recommendations-flow';
 import { MonthlyKpiChart } from '@/components/charts/MonthlyKpiChart';
@@ -911,6 +911,75 @@ export default function KpiPage() {
     });
 };
 
+const handleDownloadConsolidatedXls = async () => {
+    if (!allData.length || !filterData.length) {
+      setError("Por favor, primero calcula los indicadores para un mes para poder generar el consolidado.");
+      return;
+    }
+    setIsLoading(true);
+
+    const consolidatedData: any[] = [];
+    const uniqueIpsEntries = Array.from(new Map(filterData.map(item => [item.ips, item])).values());
+
+    for (const entry of uniqueIpsEntries) {
+      const { dept, muni, ips } = entry;
+      if (!ips) continue; // Skip if IPS is not defined
+
+      const kpiData = await calculateKpiForFilter(dept, muni, ips);
+
+      consolidatedData.push({
+        'DEPARTAMENTO': dept,
+        'MUNICIPIO': muni,
+        'IPS': ips,
+        'Gestantes en Control': kpiData.gestantesControlResult,
+        'Captación Oportuna (< 10 sem)': kpiData.kpiResult,
+        '% Captación Oportuna': kpiData.controlPercentageResult,
+        'Exámenes VIH Completos': kpiData.examenesVihCompletosResult,
+        '% Tamizaje VIH': kpiData.resultadoTamizajeVihResult,
+        'Exámenes Sífilis Completos': kpiData.examenesSifilisCompletosResult,
+        '% Tamizaje Sífilis': kpiData.resultadoTamizajeSifilisResult,
+        'Toxoplasma Válidos': kpiData.toxoplasmaValidosResult,
+        '% Tamizaje Toxoplasma': kpiData.resultadoToxoplasmaResult,
+        'Exámenes Hepatitis B Completos': kpiData.examenesHbCompletosResult,
+        '% Tamizaje Hepatitis B': kpiData.resultadoTamizajeHbResult,
+        'Chagas Válidos': kpiData.chagasResultadosValidosResult,
+        '% Tamizaje Chagas': kpiData.resultadoChagasResult,
+        'Ecografías Válidas': kpiData.ecografiasValidasResult,
+        '% Ecografías': kpiData.resultadoEcografiasResult,
+        'Consultas Nutrición': kpiData.nutricionResult,
+        '% Nutrición': kpiData.resultadoNutricionResult,
+        'Consultas Odontología': kpiData.odontologiaResult,
+        '% Odontología': kpiData.resultadoOdontologiaResult,
+        'Gestantes Alto Riesgo con Ginecología': kpiData.ginecologiaResult,
+        'Total Gestantes Alto Riesgo': kpiData.denominadorGinecologiaResult,
+        '% Cobertura Ginecología (Alto Riesgo)': kpiData.porcentajeGinecologiaResult,
+      });
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet(consolidatedData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Consolidado Indicadores");
+    
+    // Format percentages
+    const percentageCols = ['F', 'H', 'J', 'L', 'N', 'P', 'R', 'T', 'W'];
+    for (let i = 2; i <= consolidatedData.length + 1; i++) {
+        percentageCols.forEach(col => {
+            const cellRef = `${col}${i}`;
+            if (worksheet[cellRef] && worksheet[cellRef].v !== null) {
+                worksheet[cellRef].z = '0.00%';
+                worksheet[cellRef].v = (worksheet[cellRef].v as number) / 100;
+            }
+        });
+    }
+
+    const xlsBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const data = new Blob([xlsBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8" });
+    
+    const monthName = selectedFile.split('/').pop()?.split('.')[0] || "Mes";
+    saveAs(data, `Consolidado_Indicadores_${monthName}_${selectedYear}.xlsx`);
+
+    setIsLoading(false);
+  };
 
   const kpiGroups = [
     {
@@ -1167,6 +1236,9 @@ export default function KpiPage() {
                 </Button>
                 <Button onClick={handleGeneratePdfsEnMasa} className="flex-1" variant="outline" disabled={isLoading || !ipsList.length}>
                     {isLoading ? "Generando..." : "Generar Informes por IPS (En Masa)"}
+                </Button>
+                <Button onClick={handleDownloadConsolidatedXls} className="flex-1" variant="outline" disabled={isLoading || !hasCalculated}>
+                    {isLoading ? "Generando..." : "Descargar Consolidado (XLSX)"}
                 </Button>
             </div>
             )}
