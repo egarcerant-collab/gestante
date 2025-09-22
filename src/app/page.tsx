@@ -412,7 +412,7 @@ export default function KpiPage() {
             formato: "Informe de Evaluación de Indicadores",
             entidad: ips,
             vigencia: selectedFile.split('/').pop()?.split('.')[0] || 'N/A',
-            lugarFecha: `BOGOTÁ D.C, ${new Date().toLocaleDateString('es-CO')}`
+            lugarFecha: `VALLEDUPAR, ${new Date().toLocaleDateString('es-CO')}`
         },
         referencia: "Análisis de indicadores de gestantes basado en el archivo cargado.",
         analisisResumido: [
@@ -899,3 +899,5 @@ export default function KpiPage() {
     </div>
   );
 }
+
+    
