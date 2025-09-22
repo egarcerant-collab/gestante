@@ -8,11 +8,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { calcularNumeradorGinecologia, calcularDenominadorGinecologia } from '@/lib/kpi-helpers';
-import { descargarInformePDF, InformeDatos, PdfImages, buildDocDefinition } from '@/lib/informe-riesgo-pdf';
+import { descargarInformePDF, InformeDatos, buildDocDefinition } from '@/lib/informe-riesgo-pdf';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import pdfMake from "pdfmake/build/pdfmake";
-import vfsFonts from "pdfmake/build/vfs_fonts";
 
 export default function KpiPage() {
   const [selectedFile, setSelectedFile] = useState<string>("");
@@ -100,7 +98,6 @@ export default function KpiPage() {
       setHasCalculated(false);
     }
 
-
     try {
       let jsonData: any[] = allData;
 
@@ -123,6 +120,11 @@ export default function KpiPage() {
         return;
       }
       
+      const pickHeader = (rowObj: Record<string, any>, includes: string[]) => {
+        const keys = Object.keys(rowObj);
+        return keys.find(k => includes.every(frag => k.includes(frag))) || "";
+      };
+
       const firstClean: any = {};
       const originalHeaders: Record<string, string> = {};
       for (const k in jsonData[0]) {
@@ -130,11 +132,6 @@ export default function KpiPage() {
         firstClean[cleanedK] = jsonData[0][k];
         originalHeaders[cleanedK] = k;
       }
-
-      const pickHeader = (rowObj: Record<string, any>, includes: string[]) => {
-        const keys = Object.keys(rowObj);
-        return keys.find(k => includes.every(frag => k.includes(frag))) || "";
-      };
       
       const departmentHeaderRaw = originalHeaders[pickHeader(firstClean, ["departamento_residencia"])];
       const municipalityHeaderRaw = originalHeaders[pickHeader(firstClean, ["municipio_de_residencia"])];
@@ -350,7 +347,7 @@ export default function KpiPage() {
   const handleDepartmentChange = (value: string) => {
     const newDept = value === 'todos' ? '' : value;
     setSelectedDepartment(newDept);
-    setSelectedMunicipality(''); // Reset municipality when department changes
+    setSelectedMunicipality('');
   
     if (newDept) {
       setMunicipalities(deptMuniMap[newDept]?.sort() || []);
@@ -423,7 +420,6 @@ export default function KpiPage() {
     setIsLoading(true);
     const zip = new JSZip();
 
-    // 1. Cargar la imagen de fondo una sola vez.
     let backgroundImage = "";
     try {
         const response = await fetch('/imagenes/IMAGENEN UNIFICADA.jpg');
@@ -438,27 +434,26 @@ export default function KpiPage() {
         console.error("Error al cargar la imagen de fondo:", error);
     }
 
-    // 2. Iterar por cada departamento.
+    const localPdfMake = (await import("pdfmake/build/pdfmake")).default;
+    const localVfsFonts = (await import("pdfmake/build/vfs_fonts")).default;
+    localPdfMake.vfs = localVfsFonts.pdfMake.vfs;
+
+
     for (const dept of departments) {
-        // 3. Recalcular los KPIs para el departamento actual.
         await calculateKpiForFilter(dept, ''); 
         
-        // 4. Preparar los datos y la definición del PDF.
         const datosParaPdf = prepararDatosParaPdf(); 
         const docDefinition = buildDocDefinition(datosParaPdf, { background: backgroundImage });
 
-        // 5. Generar el PDF en memoria como un Blob.
-        const pdfDocGenerator = pdfMake.createPdf(docDefinition);
+        const pdfDocGenerator = localPdfMake.createPdf(docDefinition);
         const blob = await new Promise<Blob>(resolve => {
             pdfDocGenerator.getBlob(blob => resolve(blob));
         });
 
-        // 6. Añadir el PDF al archivo ZIP.
         const fileName = `Informe_Riesgo_${dept.replace(/\s/g, '_')}.pdf`;
         zip.file(fileName, blob);
     }
 
-    // 7. Generar y descargar el archivo ZIP.
     zip.generateAsync({ type: "blob" }).then(content => {
         saveAs(content, `Informes_Departamentales_${new Date().toISOString().slice(0,10)}.zip`);
     });
@@ -467,7 +462,6 @@ export default function KpiPage() {
   };
 
 
-  // Helper para recalcular KPIs para un filtro específico sin tocar el estado global.
   const calculateKpiForFilter = async (department: string, municipality: string) => {
     return new Promise<void>(resolve => {
         const pickHeader = (rowObj: Record<string, any>, includes: string[]) => {

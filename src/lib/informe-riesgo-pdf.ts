@@ -235,3 +235,5 @@ export async function descargarInformePDF(
   const docDef = buildDocDefinition(datos, images);
   pdfMake.createPdf(docDef).download(nombre);
 }
+
+    
