@@ -436,7 +436,7 @@ export default function KpiPage() {
 
     const localPdfMake = (await import("pdfmake/build/pdfmake")).default;
     const localVfsFonts = (await import("pdfmake/build/vfs_fonts")).default;
-    localPdfMake.vfs = localVfsFonts.pdfMake.vfs;
+    localPdfMake.vfs = localVfsFonts;
 
 
     for (const dept of departments) {
@@ -835,3 +835,5 @@ export default function KpiPage() {
     </div>
   );
 }
+
+    
