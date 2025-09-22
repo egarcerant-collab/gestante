@@ -379,65 +379,70 @@ export default function KpiPage() {
     }
   };
 
-  const handleYearChange = async (year: string) => {
+  const handleYearChange = (year: string) => {
     setSelectedYear(year);
     setMonths(availableFiles[year] || []);
     setSelectedFile("");
     resetAll();
     setChartData([]);
-    
-    if (availableFiles[year]?.length > 0) {
-      setIsChartLoading(true);
-      const dataPromises = availableFiles[year].map(async (monthFile) => {
-        try {
-          const response = await fetch(monthFile.path);
-          if (!response.ok) return null;
-          const data = await response.arrayBuffer();
-          const workbook = XLSX.read(data, { type: 'array' });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: false });
-          
-          if (jsonData.length === 0) return { name: monthFile.name, 'Gestantes en Control': 0, 'Captación Oportuna': 0 };
+  };
 
-          const firstClean: any = {};
-          Object.keys(jsonData[0]).forEach(k => { firstClean[cleanHeader(k)] = jsonData[0][k]; });
-          
-          const pickHeader = (rowObj: Record<string, any>, includes: string[]) => {
-            const keys = Object.keys(rowObj);
-            return keys.find(k => includes.every(frag => k.includes(frag))) || "";
-          };
-
-          const controlHeader = pickHeader(firstClean, ["identificacion"]);
-          const captacionHeader = pickHeader(firstClean, ["edad", "gest", "inicio", "control"]);
-          
-          let controlCount = 0;
-          let captacionCount = 0;
-          
-          jsonData.forEach((row: any) => {
-            const cleanedRow: { [key: string]: any } = {};
-            for (const key in row) {
-              cleanedRow[cleanHeader(key)] = row[key];
-            }
-            if (cleanedRow[controlHeader] !== undefined && cleanedRow[controlHeader] !== "") {
-              controlCount++;
-            }
-            const captacionValue = cleanedRow[captacionHeader];
-            if (captacionValue !== undefined && captacionValue !== "" && !isNaN(parseFloat(captacionValue)) && parseFloat(captacionValue) < 10) {
-              captacionCount++;
-            }
-          });
-          return { name: monthFile.name, 'Gestantes en Control': controlCount, 'Captación Oportuna': captacionCount };
-        } catch (error) {
-          console.error(`Error processing file for chart: ${monthFile.name}`, error);
-          return { name: monthFile.name, 'Gestantes en Control': 0, 'Captación Oportuna': 0 };
-        }
-      });
-
-      const results = (await Promise.all(dataPromises)).filter(Boolean) as ChartDataItem[];
-      setChartData(results);
-      setIsChartLoading(false);
+  const handleGenerateChart = async () => {
+    if (!selectedYear || !availableFiles[selectedYear] || availableFiles[selectedYear].length === 0) {
+      setChartData([]);
+      return;
     }
+    
+    setIsChartLoading(true);
+    const dataPromises = availableFiles[selectedYear].map(async (monthFile) => {
+      try {
+        const response = await fetch(monthFile.path);
+        if (!response.ok) return null;
+        const data = await response.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: false });
+        
+        if (jsonData.length === 0) return { name: monthFile.name, 'Gestantes en Control': 0, 'Captación Oportuna': 0 };
+
+        const firstClean: any = {};
+        Object.keys(jsonData[0]).forEach(k => { firstClean[cleanHeader(k)] = jsonData[0][k]; });
+        
+        const pickHeader = (rowObj: Record<string, any>, includes: string[]) => {
+          const keys = Object.keys(rowObj);
+          return keys.find(k => includes.every(frag => k.includes(frag))) || "";
+        };
+
+        const controlHeader = pickHeader(firstClean, ["identificacion"]);
+        const captacionHeader = pickHeader(firstClean, ["edad", "gest", "inicio", "control"]);
+        
+        let controlCount = 0;
+        let captacionCount = 0;
+        
+        jsonData.forEach((row: any) => {
+          const cleanedRow: { [key: string]: any } = {};
+          for (const key in row) {
+            cleanedRow[cleanHeader(key)] = row[key];
+          }
+          if (cleanedRow[controlHeader] !== undefined && cleanedRow[controlHeader] !== "") {
+            controlCount++;
+          }
+          const captacionValue = cleanedRow[captacionHeader];
+          if (captacionValue !== undefined && captacionValue !== "" && !isNaN(parseFloat(captacionValue)) && parseFloat(captacionValue) < 10) {
+            captacionCount++;
+          }
+        });
+        return { name: monthFile.name, 'Gestantes en Control': controlCount, 'Captación Oportuna': captacionCount };
+      } catch (error) {
+        console.error(`Error processing file for chart: ${monthFile.name}`, error);
+        return { name: monthFile.name, 'Gestantes en Control': 0, 'Captación Oportuna': 0 };
+      }
+    });
+
+    const results = (await Promise.all(dataPromises)).filter(Boolean) as ChartDataItem[];
+    setChartData(results);
+    setIsChartLoading(false);
   };
 
 
@@ -958,6 +963,14 @@ export default function KpiPage() {
             </div>
           </div>
           
+          {selectedYear && (
+            <div className="flex gap-4 mt-4">
+              <Button onClick={handleGenerateChart} className="w-full" disabled={isChartLoading || !selectedYear}>
+                {isChartLoading ? "Generando Gráfico..." : "Generar Gráfico Anual"}
+              </Button>
+            </div>
+          )}
+
           {isChartLoading && <p>Cargando datos para gráficos...</p>}
           {chartData.length > 0 && !isChartLoading && (
             <div className="mt-4">
@@ -1083,4 +1096,5 @@ export default function KpiPage() {
   );
 }
 
+    
     
