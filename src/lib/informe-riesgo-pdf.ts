@@ -251,7 +251,7 @@ export async function generarInformePDF(
 
   // Dynamic imports to ensure they only run on the client side
   const pdfMake = (await import("pdfmake/build/pdfmake")).default;
-  const pdfFonts = (await import("pdfmake/build/vfs_fonts")).default;
+  const pdfFonts = await import("pdfmake/build/vfs_fonts");
 
   // Asignación correcta y robusta de las fuentes
   if (pdfMake && pdfFonts) {
