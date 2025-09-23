@@ -4,6 +4,10 @@
 // de lo contrario usará la fuente por defecto (Roboto).
 import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 
+// NOTA: pdfmake y vfs_fonts se importan dinámicamente dentro de generarInformePDF
+// para evitar problemas con el Server-Side Rendering (SSR) de Next.js, ya que
+// estas librerías dependen de APIs del navegador.
+
 export type Texto = string | (string | { text: string; bold?: boolean })[];
 
 export interface InformeDatos {
@@ -41,7 +45,7 @@ export interface PdfImages {
 // ------------------------------------------------------------
 // (Opcional) Registrar Arial. Sustituye las constantes con tus TTF en base64.
 // Si no las defines, pdfmake usará Roboto y todo seguirá funcionando.
-export async function registerArialIfAvailable(pdfMake: any) {
+export async function registerArialIfAvailable(pdfMakeInstance: any) {
   // Coloca tus TTF en base64 (sin encabezado data:) si quieres Arial real.
   const ARIAL = "";            // <-- "AAEAAA..." (Arial.ttf en base64)
   const ARIAL_BOLD = "";       // <-- (Arial Bold.ttf en base64)
@@ -49,14 +53,14 @@ export async function registerArialIfAvailable(pdfMake: any) {
   const ARIAL_BOLDITALIC = ""; // <-- (Arial Bold Italic.ttf en base64)
 
   if (ARIAL && ARIAL_BOLD) {
-    pdfMake.vfs = pdfMake.vfs || {};
-    pdfMake.vfs["Arial.ttf"] = ARIAL;
-    pdfMake.vfs["Arial-Bold.ttf"] = ARIAL_BOLD;
-    if (ARIAL_ITALIC) pdfMake.vfs["Arial-Italic.ttf"] = ARIAL_ITALIC;
-    if (ARIAL_BOLDITALIC) pdfMake.vfs["Arial-BoldItalic.ttf"] = ARIAL_BOLDITALIC;
+    pdfMakeInstance.vfs = pdfMakeInstance.vfs || {};
+    pdfMakeInstance.vfs["Arial.ttf"] = ARIAL;
+    pdfMakeInstance.vfs["Arial-Bold.ttf"] = ARIAL_BOLD;
+    if (ARIAL_ITALIC) pdfMakeInstance.vfs["Arial-Italic.ttf"] = ARIAL_ITALIC;
+    if (ARIAL_BOLDITALIC) pdfMakeInstance.vfs["Arial-BoldItalic.ttf"] = ARIAL_BOLDITALIC;
 
-    pdfMake.fonts = {
-      ...(pdfMake.fonts || {}),
+    pdfMakeInstance.fonts = {
+      ...(pdfMakeInstance.fonts || {}),
       Arial: {
         normal: "Arial.ttf",
         bold: "Arial-Bold.ttf",
@@ -244,14 +248,14 @@ export async function generarInformePDF(
   nombre = "Informe_Evaluacion_Riesgo.pdf",
   obtenerBlob = false
 ): Promise<Blob | void> {
-  const pdfMakeModule = await import("pdfmake/build/pdfmake");
-  const pdfFontsModule = await import("pdfmake/build/vfs_fonts");
 
-  const pdfMake = pdfMakeModule.default;
-  
+  // Dynamic imports to ensure they only run on the client side
+  const pdfMake = (await import("pdfmake/build/pdfmake")).default;
+  const pdfFonts = (await import("pdfmake/build/vfs_fonts")).default;
+
   // Asignación correcta y robusta de las fuentes
-  if (pdfMake && pdfFontsModule) {
-    pdfMake.vfs = pdfFontsModule.pdfMake.vfs;
+  if (pdfMake && pdfFonts) {
+    pdfMake.vfs = pdfFonts.pdfMake.vfs;
   } else {
      throw new Error("Could not load pdfmake or vfs_fonts.");
   }
