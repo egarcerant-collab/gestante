@@ -250,8 +250,8 @@ export async function generarInformePDF(
   const pdfMake = pdfMakeModule.default;
   
   // Asignación correcta y robusta de las fuentes
-  if (pdfMake && pdfFontsModule.default) {
-    pdfMake.vfs = pdfFontsModule.default.pdfMake.vfs;
+  if (pdfMake && pdfFontsModule) {
+    pdfMake.vfs = pdfFontsModule.pdfMake.vfs;
   } else {
      throw new Error("Could not load pdfmake or vfs_fonts.");
   }
