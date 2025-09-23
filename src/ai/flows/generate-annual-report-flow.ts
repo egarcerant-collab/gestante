@@ -64,10 +64,14 @@ const annualReportPrompt = ai.definePrompt({
     El tono debe ser formal, objetivo y basado en datos, como se esperaría de un informe para la alta gerencia. Evita repetir los datos numéricos de forma excesiva; en su lugar, interprétalos.
   `,
   helpers: {
-      toFixed: (num: number, digits: number) => {
-        return num.toFixed(digits);
+    toFixed: function (this: any, key: string, digits: number) {
+      const value = this[key];
+      if (typeof value === 'number') {
+        return value.toFixed(digits);
       }
-  }
+      return value;
+    },
+  },
 });
 
 const generateAnnualReportFlow = ai.defineFlow(
