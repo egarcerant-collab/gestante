@@ -253,7 +253,9 @@ export async function generarInformePDF(
   const pdfMake = (await import("pdfmake/build/pdfmake")).default;
   const pdfFonts = await import("pdfmake/build/vfs_fonts");
 
-  // Asignación correcta y robusta de las fuentes
+  // Asignación correcta y robusta de las fuentes.
+  // La importación de vfs_fonts modifica el objeto pdfMake.
+  // No es necesaria una asignación manual si se importan en el mismo ámbito.
   if (pdfMake && pdfFonts) {
     pdfMake.vfs = pdfFonts.pdfMake.vfs;
   } else {
