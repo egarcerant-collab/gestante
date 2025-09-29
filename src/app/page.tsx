@@ -18,8 +18,20 @@ import { generateAnnualReport } from '@/ai/flows/generate-annual-report-flow';
 import { MonthlyKpiChart } from '@/components/charts/MonthlyKpiChart';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import html2canvas from 'html2canvas';
-import { getExcelData, availableYears, getAvailableMonthsForYear } from '@/lib/excel-data-provider';
 
+const availableFiles = {
+  "2025": {
+    "ENERO": "/BASES/2025/ENERO.xlsx",
+    "FEBRERO": "/BASES/2025/FEBRERO.xlsx",
+    "MARZO": "/BASES/2025/MARZO.xlsx",
+    "ABRIL": "/BASES/2025/ABRIL.xlsx",
+    "MAYO": "/BASES/2025/MAYO.xlsx",
+    "JUNIO": "/BASES/2025/JUNIO.xlsx",
+    "JULIO": "/BASES/2025/JULIO.xlsx",
+    "AGOSTO": "/BASES/2025/AGOSTO.xlsx",
+  },
+  "2026": {},
+};
 
 const monthNameToNumber: { [key: string]: number } = {
     "ENERO": 0, "FEBRERO": 1, "MARZO": 2, "ABRIL": 3, "MAYO": 4, "JUNIO": 5,
@@ -33,12 +45,16 @@ type ChartDataItem = {
 
 // Function to convert Excel serial date to JS Date
 const excelSerialDateToJSDate = (serial: number) => {
-    // Excel's epoch starts on 1900-01-01, but it incorrectly thinks 1900 is a leap year.
-    // JavaScript's epoch is 1970-01-01. The number of days between is 25569.
-    // We add one day to account for this difference and Excel's bug.
-    // Use UTC functions to avoid timezone shifts.
-    const date = new Date(Date.UTC(0, 0, serial - 1));
-    return date;
+    const utc_days = Math.floor(serial - 25569);
+    const utc_value = utc_days * 86400;
+    const date_info = new Date(utc_value * 1000);
+    const fractional_day = serial - Math.floor(serial) + 0.0000001;
+    let total_seconds = Math.floor(86400 * fractional_day);
+    const seconds = total_seconds % 60;
+    total_seconds -= seconds;
+    const hours = Math.floor(total_seconds / (60 * 60));
+    const minutes = Math.floor(total_seconds / 60) % 60;
+    return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate(), hours, minutes, seconds);
 };
 
 
@@ -107,8 +123,8 @@ export default function KpiPage() {
       .replace(/^_|_$/g, "");
 
   const calculateKpi = async (isInitialRun = false) => {
-    if (!selectedFile || !selectedYear) {
-      setError("Por favor, selecciona un año y un mes para analizar.");
+    if (!selectedFile) {
+      setError("Por favor, selecciona un archivo para analizar.");
       return;
     }
 
@@ -146,12 +162,20 @@ export default function KpiPage() {
     try {
       let jsonData: any[] = allData;
 
-      if (isInitialRun || allData.length === 0 || allData[0]?.__sourcePath !== `${selectedYear}-${selectedFile}`) {
-        jsonData = getExcelData(selectedYear, selectedFile);
-        if (!jsonData) {
-            throw new Error(`No se pudieron cargar los datos para ${selectedFile} de ${selectedYear}`);
+      if (isInitialRun || allData.length === 0 || allData[0]?.__sourcePath !== selectedFile) {
+        const response = await fetch(selectedFile);
+        if (!response.ok) {
+          throw new Error(`No se pudo encontrar el archivo en la ruta especificada. Status: ${response.status}`);
         }
-        jsonData.forEach(row => row.__sourcePath = `${selectedYear}-${selectedFile}`);
+        const data = await response.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        jsonData = XLSX.utils.sheet_to_json(worksheet, {
+          raw: false,
+          dateNF: 'dd/mm/yyyy',
+        });
+        jsonData.forEach(row => row.__sourcePath = selectedFile);
         setAllData(jsonData);
       }
       
@@ -264,7 +288,7 @@ export default function KpiPage() {
         setPorcentajeGinecologiaResult(0);
       }
 
-      const selectedMonthName = selectedFile.toUpperCase().trim();
+      const selectedMonthName = selectedFile.split('/').pop()?.split('.')[0]?.toUpperCase()?.trim() || '';
       const selectedMonthNumber = monthNameToNumber[selectedMonthName];
       const yearNumber = parseInt(selectedYear, 10);
 
@@ -350,13 +374,13 @@ export default function KpiPage() {
                     const month = parseInt(parts[1], 10) - 1;
                     const year = parseInt(parts[2], 10);
                     if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-                        date = new Date(Date.UTC(year, month, day));
+                        date = new Date(year, month, day);
                     }
                 }
             }
 
             if (date instanceof Date && !isNaN(date.getTime())) {
-                if (date.getUTCFullYear() === yearNumber && date.getUTCMonth() === selectedMonthNumber) {
+                if (date.getFullYear() === yearNumber && date.getMonth() === selectedMonthNumber) {
                     inPeriodCount++;
                 } else {
                     outOfPeriodCount++;
@@ -429,23 +453,32 @@ export default function KpiPage() {
 
   const handleYearChange = (year: string) => {
     setSelectedYear(year);
-    setMonths(getAvailableMonthsForYear(year) || []);
+    const yearMonths = (availableFiles as any)[year] ? Object.keys((availableFiles as any)[year]) : [];
+    setMonths(yearMonths);
     setSelectedFile("");
     resetAll();
     setChartData([]);
   };
 
   const handleGenerateChart = async () => {
-    if (!selectedYear || !getAvailableMonthsForYear(selectedYear) || getAvailableMonthsForYear(selectedYear).length === 0) {
+    if (!selectedYear || !months || months.length === 0) {
       setChartData([]);
       return;
     }
     
     setIsChartLoading(true);
-    const dataPromises = getAvailableMonthsForYear(selectedYear).map(async (monthName) => {
+    const dataPromises = months.map(async (monthName) => {
       try {
-        const jsonData = getExcelData(selectedYear, monthName);
-        if (!jsonData) return null;
+        const filePath = (availableFiles as any)[selectedYear]?.[monthName];
+        if (!filePath) return null;
+
+        const response = await fetch(filePath);
+        if (!response.ok) return null;
+        const data = await response.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
         
         const defaultResult = { 
             name: monthName, 
@@ -562,7 +595,9 @@ export default function KpiPage() {
   ];
 
   const handleFileChange = (value: string) => {
-    setSelectedFile(value);
+    const month = value;
+    const filePath = (availableFiles as any)[selectedYear]?.[month];
+    setSelectedFile(filePath);
     setAllData([]);
     setHasCalculated(false);
     setDepartments([]);
@@ -630,12 +665,13 @@ export default function KpiPage() {
   }
   
   const prepararDatosParaPdf = (kpiData: KpiResults, ips: string, recomendacionesAI?: string[], analisisAnual?: string): InformeDatos => {
+    const monthName = selectedFile.split('/').pop()?.split('.')[0] || 'N/A';
     return {
         encabezado: {
             proceso: "Seguimiento a la Gestión del Riesgo en Salud",
             formato: "Informe de Evaluación de Indicadores",
             entidad: ips,
-            vigencia: selectedFile || 'N/A',
+            vigencia: monthName,
             lugarFecha: `VALLEDUPAR, ${new Date().toLocaleDateString('es-CO')}`
         },
         referencia: "Análisis de indicadores de gestantes basado en el archivo cargado.",
@@ -697,12 +733,14 @@ export default function KpiPage() {
     try {
         const aiRecommendations = await generateRecommendations(currentKpiData);
         const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General", aiRecommendations);
-        await generarInformePDF(datosParaPdf, undefined);
+        const images: PdfImages = { background: '/imagenes/IMAGENEN UNIFICADA.jpg' };
+        await generarInformePDF(datosParaPdf, images);
     } catch (aiError) {
         console.error("Error generating AI recommendations:", aiError);
         setError("Error al generar las recomendaciones de IA. Usando valores por defecto.");
         const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General");
-        await generarInformePDF(datosParaPdf, undefined);
+        const images: PdfImages = { background: '/imagenes/IMAGENEN UNIFICADA.jpg' };
+        await generarInformePDF(datosParaPdf, images);
     } finally {
         setIsLoading(false);
     }
@@ -722,7 +760,8 @@ export default function KpiPage() {
         try {
             const aiRecommendations = await generateRecommendations(kpiDataForIps);
             const datosParaPdf = prepararDatosParaPdf(kpiDataForIps, ips, aiRecommendations);
-            const blob = await generarInformePDF(datosParaPdf, undefined, '', true);
+            const images: PdfImages = { background: '/imagenes/IMAGENEN UNIFICADA.jpg' };
+            const blob = await generarInformePDF(datosParaPdf, images, '', true);
 
             if (blob) {
                 const fileName = `Informe_Riesgo_${ips.replace(/\s/g, '_')}.pdf`;
@@ -731,7 +770,8 @@ export default function KpiPage() {
         } catch (aiError) {
             console.error(`Error generando recomendaciones de IA para ${ips}:`, aiError);
             const datosParaPdf = prepararDatosParaPdf(kpiDataForIps, ips);
-            const blob = await generarInformePDF(datosParaPdf, undefined, '', true);
+            const images: PdfImages = { background: '/imagenes/IMAGENEN UNIFICADA.jpg' };
+            const blob = await generarInformePDF(datosParaPdf, images, '', true);
             if (blob) {
                 const fileName = `Informe_Riesgo_${ips.replace(/\s/g, '_')}_sin_IA.pdf`;
                 zip.file(fileName, blob);
@@ -986,7 +1026,7 @@ const handleDownloadConsolidatedXls = async () => {
     const xlsBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
     const data = new Blob([xlsBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8" });
     
-    const monthName = selectedFile;
+    const monthName = selectedFile.split('/').pop()?.split('.')[0] || 'mes';
     saveAs(data, `Consolidado_Indicadores_${monthName}_${selectedYear}.xlsx`);
 
     setIsLoading(false);
@@ -1022,6 +1062,7 @@ const handleDownloadConsolidatedXls = async () => {
         }
         
         const images: PdfImages = {
+          background: '/imagenes/IMAGENEN UNIFICADA.jpg',
           charts: chartImages.length > 0 ? chartImages : undefined
         };
 
@@ -1150,7 +1191,7 @@ const handleDownloadConsolidatedXls = async () => {
                   <SelectValue placeholder="Elige un año..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableYears.map(year => (
+                  {Object.keys(availableFiles).map(year => (
                     <SelectItem key={year} value={year}>{year}</SelectItem>
                   ))}
                 </SelectContent>
@@ -1158,7 +1199,7 @@ const handleDownloadConsolidatedXls = async () => {
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="excel-file">Selecciona un mes</Label>
-              <Select onValueChange={handleFileChange} value={selectedFile} disabled={!selectedYear}>
+              <Select onValueChange={handleFileChange} value={selectedFile.split('/').pop()?.split('.')[0]} disabled={!selectedYear}>
                 <SelectTrigger id="excel-file">
                   <SelectValue placeholder="Elige un mes..." />
                 </SelectTrigger>
@@ -1318,3 +1359,5 @@ const handleDownloadConsolidatedXls = async () => {
     </div>
   );
 }
+
+    
