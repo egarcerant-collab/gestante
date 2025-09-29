@@ -35,10 +35,9 @@ type ChartDataItem = {
 const excelSerialDateToJSDate = (serial: number) => {
     // Excel's epoch starts on 1900-01-01, but it incorrectly thinks 1900 is a leap year.
     // JavaScript's epoch is 1970-01-01. The number of days between is 25569.
-    // We subtract one day to account for this difference.
+    // We add one day to account for this difference and Excel's bug.
+    // Use UTC functions to avoid timezone shifts.
     const date = new Date(Date.UTC(0, 0, serial - 1));
-    // Set hours to midday to avoid timezone shifts pushing the date back a day.
-    date.setUTCHours(12);
     return date;
 };
 
@@ -1023,7 +1022,6 @@ const handleDownloadConsolidatedXls = async () => {
         }
         
         const images: PdfImages = {
-          background: '', // Background image removed
           charts: chartImages.length > 0 ? chartImages : undefined
         };
 

@@ -37,7 +37,7 @@ export interface InformeDatos {
 }
 
 export interface PdfImages {
-  background: string;
+  background?: string;
   charts?: Array<{ id: string; dataUrl: string }>;
 }
 
