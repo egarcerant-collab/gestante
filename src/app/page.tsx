@@ -286,7 +286,7 @@ export default function KpiPage() {
         setPorcentajeGinecologiaResult(0);
       }
 
-      const selectedMonthName = selectedFile.split('/').pop()?.split('.')[0]?.toUpperCase() || '';
+      const selectedMonthName = selectedFile.split('/').pop()?.split('.')[0]?.toUpperCase().trim() || '';
       const selectedMonthNumber = monthNameToNumber[selectedMonthName];
       const yearNumber = parseInt(selectedYear, 10);
 
@@ -357,13 +357,12 @@ export default function KpiPage() {
         if (ultimoControlValue) {
             let date: Date | null = null;
             if (typeof ultimoControlValue === 'number') {
-                // Handle Excel serial date number
                 date = excelSerialDateToJSDate(ultimoControlValue);
             } else if (typeof ultimoControlValue === 'string') {
                 const parts = ultimoControlValue.split('/');
                 if (parts.length === 3) {
                     const day = parseInt(parts[0], 10);
-                    const month = parseInt(parts[1], 10) - 1; // JS months are 0-indexed
+                    const month = parseInt(parts[1], 10) - 1;
                     const year = parseInt(parts[2], 10);
                     if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
                         date = new Date(year, month, day);
