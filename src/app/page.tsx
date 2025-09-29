@@ -35,9 +35,10 @@ type ChartDataItem = {
 const excelSerialDateToJSDate = (serial: number) => {
     // Excel's epoch starts on 1900-01-01, but it incorrectly thinks 1900 is a leap year.
     // JavaScript's epoch is 1970-01-01. The number of days between is 25569.
-    // We add an hour to prevent timezone shifts from pushing the date back a day.
+    // We subtract one day to account for this difference.
     const date = new Date(Date.UTC(0, 0, serial - 1));
-    date.setUTCHours(date.getUTCHours() + 4);
+    // Set hours to midday to avoid timezone shifts pushing the date back a day.
+    date.setUTCHours(12);
     return date;
 };
 
@@ -695,29 +696,12 @@ export default function KpiPage() {
     };
     
     try {
-        const imageResponse = await fetch('/imagenes/IMAGENEN UNIFICADA.jpg');
-        const imageBlob = await imageResponse.blob();
-        const reader = new FileReader();
-        reader.readAsDataURL(imageBlob);
-        reader.onloadend = async () => {
-            const base64data = reader.result;
-            const images: PdfImages = { background: base64data as string };
-
-            try {
-                const aiRecommendations = await generateRecommendations(currentKpiData);
-                const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General", aiRecommendations);
-                await generarInformePDF(datosParaPdf, images);
-            } catch (aiError) {
-                console.error("Error generating AI recommendations:", aiError);
-                setError("Error al generar las recomendaciones de IA. Usando valores por defecto.");
-                const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General");
-                await generarInformePDF(datosParaPdf, images);
-            }
-        };
-
-    } catch (error) {
-        console.error("Error generating report:", error);
-        setError("Error al cargar la imagen de fondo. El PDF se generará sin ella.");
+        const aiRecommendations = await generateRecommendations(currentKpiData);
+        const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General", aiRecommendations);
+        await generarInformePDF(datosParaPdf, undefined);
+    } catch (aiError) {
+        console.error("Error generating AI recommendations:", aiError);
+        setError("Error al generar las recomendaciones de IA. Usando valores por defecto.");
         const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General");
         await generarInformePDF(datosParaPdf, undefined);
     } finally {
@@ -732,31 +716,14 @@ export default function KpiPage() {
     }
     setIsLoading(true);
     const zip = new JSZip();
-
-    let backgroundImage: string | undefined;
-    try {
-        const imageResponse = await fetch('/imagenes/IMAGENEN UNIFICADA.jpg');
-        const imageBlob = await imageResponse.blob();
-        backgroundImage = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(imageBlob);
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = (error) => reject(error);
-        });
-    } catch(e) {
-        console.error("No se pudo cargar la imagen de fondo", e);
-        setError("No se pudo cargar la imagen de fondo para los PDFs.");
-    }
     
-    const images: PdfImages = { background: backgroundImage || '' };
-
     for (const ips of ipsList) {
         const kpiDataForIps = await calculateKpiForFilter('', '', ips); 
         
         try {
             const aiRecommendations = await generateRecommendations(kpiDataForIps);
             const datosParaPdf = prepararDatosParaPdf(kpiDataForIps, ips, aiRecommendations);
-            const blob = await generarInformePDF(datosParaPdf, images, '', true);
+            const blob = await generarInformePDF(datosParaPdf, undefined, '', true);
 
             if (blob) {
                 const fileName = `Informe_Riesgo_${ips.replace(/\s/g, '_')}.pdf`;
@@ -765,7 +732,7 @@ export default function KpiPage() {
         } catch (aiError) {
             console.error(`Error generando recomendaciones de IA para ${ips}:`, aiError);
             const datosParaPdf = prepararDatosParaPdf(kpiDataForIps, ips);
-            const blob = await generarInformePDF(datosParaPdf, images, '', true);
+            const blob = await generarInformePDF(datosParaPdf, undefined, '', true);
             if (blob) {
                 const fileName = `Informe_Riesgo_${ips.replace(/\s/g, '_')}_sin_IA.pdf`;
                 zip.file(fileName, blob);
@@ -1055,23 +1022,8 @@ const handleDownloadConsolidatedXls = async () => {
             }
         }
         
-        // 3. Get background image
-        let backgroundImage: string | undefined;
-        try {
-            const imageResponse = await fetch('/imagenes/IMAGENEN UNIFICADA.jpg');
-            const imageBlob = await imageResponse.blob();
-            backgroundImage = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(imageBlob);
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = (error) => reject(error);
-            });
-        } catch(e) {
-            console.error("No se pudo cargar la imagen de fondo", e);
-        }
-
         const images: PdfImages = {
-          background: backgroundImage || '',
+          background: '', // Background image removed
           charts: chartImages.length > 0 ? chartImages : undefined
         };
 
