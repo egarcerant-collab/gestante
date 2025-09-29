@@ -287,7 +287,7 @@ export default function KpiPage() {
       }
 
       const selectedMonthName = selectedFile.split('/').pop()?.split('.')[0]?.toUpperCase().trim() || '';
-      const selectedMonthNumber = monthNameToNumber[selectedMonthName];
+      const selectedMonthNumber = monthNameToNumber[selectedMonthName.trim()];
       const yearNumber = parseInt(selectedYear, 10);
 
       filteredData.forEach((row: any) => {
