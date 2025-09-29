@@ -34,6 +34,11 @@ const availableFiles: Record<string, { name: string; path: string }[]> = {
     "2026": []
   };
 
+const monthNameToNumber: { [key: string]: number } = {
+    "ENERO": 0, "FEBRERO": 1, "MARZO": 2, "ABRIL": 3, "MAYO": 4, "JUNIO": 5,
+    "JULIO": 6, "AGOSTO": 7, "SEPTIEMBRE": 8, "OCTUBRE": 9, "NOVIEMBRE": 10, "DICIEMBRE": 11
+};
+
 type ChartDataItem = {
   name: string;
   [key: string]: number | string;
@@ -66,6 +71,8 @@ export default function KpiPage() {
   const [ginecologiaResult, setGinecologiaResult] = useState<number | null>(null);
   const [denominadorGinecologiaResult, setDenominadorGinecologiaResult] = useState<number | null>(null);
   const [porcentajeGinecologiaResult, setPorcentajeGinecologiaResult] = useState<number | null>(null);
+  const [controlesEnMes, setControlesEnMes] = useState<number | null>(null);
+  const [controlesFueraMes, setControlesFueraMes] = useState<number | null>(null);
 
   const [departments, setDepartments] = useState<string[]>([]);
   const [municipalities, setMunicipalities] = useState<string[]>([]);
@@ -131,6 +138,9 @@ export default function KpiPage() {
     setGinecologiaResult(null);
     setDenominadorGinecologiaResult(null);
     setPorcentajeGinecologiaResult(null);
+    setControlesEnMes(null);
+    setControlesFueraMes(null);
+
     if (isInitialRun) {
       setHasCalculated(false);
     }
@@ -233,6 +243,7 @@ export default function KpiPage() {
       const eco3Header = pickHeader(firstClean, ["ecografia", "otras"]);
       const nutricionHeader = pickHeader(firstClean, ["nutricion"]);
       const odontologiaHeader = pickHeader(firstClean, ["odontolog"]);
+      const ultimoControlHeader = pickHeader(firstClean, ["ultimo", "control", "prenatal"]);
       
       let captacionCount = 0;
       let controlCount = 0;
@@ -244,6 +255,8 @@ export default function KpiPage() {
       let sinDatosEcografiaCount = 0;
       let sinDatosNutricionCount = 0;
       let sinDatosOdontologiaCount = 0;
+      let inPeriodCount = 0;
+      let outOfPeriodCount = 0;
       const totalRegistros = filteredData.length;
 
       const numeradorGinecologia = calcularNumeradorGinecologia(filteredData);
@@ -257,6 +270,10 @@ export default function KpiPage() {
       } else {
         setPorcentajeGinecologiaResult(0);
       }
+
+      const selectedMonthName = selectedFile.split('/').pop()?.split('.')[0]?.toUpperCase() || '';
+      const selectedMonthNumber = monthNameToNumber[selectedMonthName];
+      const yearNumber = parseInt(selectedYear, 10);
 
       filteredData.forEach((row: any) => {
         const cleanedRow: { [key: string]: any } = {};
@@ -320,6 +337,23 @@ export default function KpiPage() {
         if (odontologiaValue.includes("sin datos")) {
             sinDatosOdontologiaCount++;
         }
+
+        const ultimoControlValue = cleanedRow[ultimoControlHeader];
+        if (ultimoControlValue && typeof ultimoControlValue === 'string') {
+            const parts = ultimoControlValue.split('/');
+            if (parts.length === 3) {
+                const day = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1;
+                const year = parseInt(parts[2], 10);
+                if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                    if (year === yearNumber && month === selectedMonthNumber) {
+                        inPeriodCount++;
+                    } else {
+                        outOfPeriodCount++;
+                    }
+                }
+            }
+        }
       });
       
       setKpiResult(captacionCount);
@@ -371,6 +405,8 @@ export default function KpiPage() {
         setResultadoOdontologiaResult(0);
       }
 
+      setControlesEnMes(inPeriodCount);
+      setControlesFueraMes(outOfPeriodCount);
       setHasCalculated(true);
 
     } catch (err: any) {
@@ -944,7 +980,7 @@ const handleDownloadConsolidatedXls = async () => {
         'Exámenes Sífilis Completos': kpiData.examenesSifilisCompletosResult,
         '% Tamizaje Sífilis': kpiData.resultadoTamizajeSifilisResult,
         'Toxoplasma Válidos': kpiData.toxoplasmaValidosResult,
-        '% Tamizaje Toxoplasma': kpiData.resultadoToxoplasmaResult,
+        '% Tamizaje Toxoplasma': kpiData.resultadoTamizajeToxoplasmaResult,
         'Exámenes Hepatitis B Completos': kpiData.examenesHbCompletosResult,
         '% Tamizaje Hepatitis B': kpiData.resultadoTamizajeHbResult,
         'Chagas Válidos': kpiData.chagasResultadosValidosResult,
@@ -1132,6 +1168,13 @@ const handleDownloadConsolidatedXls = async () => {
         { title: "Denominador Ginecología", value: denominadorGinecologiaResult, description: "Total de gestantes con clasificación de 'Alto Riesgo Obstétrico'." },
         { title: "Cobertura Ginecología", value: porcentajeGinecologiaResult, isPercentage: true, description: "Porcentaje de gestantes de alto riesgo con consulta de ginecología." },
       ]
+    },
+    {
+      title: "Indicadores de Último Control Prenatal",
+      kpis: [
+        { title: "Controles en el Mes", value: controlesEnMes, description: "Controles prenatales realizados en el mes seleccionado." },
+        { title: "Controles Fuera del Mes", value: controlesFueraMes, description: "Controles prenatales realizados fuera del mes seleccionado." },
+      ]
     }
   ];
 
@@ -1311,7 +1354,7 @@ const handleDownloadConsolidatedXls = async () => {
                 <Button onClick={handleDownloadConsolidatedXls} className="flex-1" variant="outline" disabled={isLoading || !hasCalculated}>
                     {isLoading ? "Generando..." : "Descargar Consolidado (XLSX)"}
                 </Button>
-                 <Button onClick={handleGenerateAnnualReport} className="flex-1" variant="outline" disabled={isLoading || chartData.length === 0}>
+                 <Button onClick={handleGenerateAnnualReport} className="flex-1" variant="outline" disabled={isLoading || !chartData || chartData.length === 0}>
                     {isLoading ? "Generando Informe IA..." : "Generar Informe Anual con IA"}
                 </Button>
             </div>
@@ -1321,3 +1364,5 @@ const handleDownloadConsolidatedXls = async () => {
     </div>
   );
 }
+
+    
