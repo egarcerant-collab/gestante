@@ -47,15 +47,14 @@ type ChartDataItem = {
 // Function to convert Excel serial date to JS Date
 const excelSerialDateToJSDate = (serial: number) => {
     // Excel's epoch starts on 1900-01-01, but it incorrectly thinks 1900 is a leap year.
-    // The subtraction of 2 accounts for this and the 1-based vs 0-based day count.
-    const utc_days = Math.floor(serial - 25569);
-    const utc_value = utc_days * 86400;
-    const date_info = new Date(utc_value * 1000);
-    
-    // Adjust for timezone offset to get the correct local date
-    const localDate = new Date(date_info.getTime() + (date_info.getTimezoneOffset() * 60000));
-
-    return localDate;
+    // So, we need to adjust. JavaScript's epoch is 1970-01-01.
+    // The number of days between 1900-01-01 and 1970-01-01 is 25569.
+    // Excel incorrectly treats 1900 as a leap year, so we subtract 1 more if the date is after Feb 1900.
+    // For simplicity, we use 25569 which is standard for dates after Feb 1900.
+    const date = new Date((serial - 25569) * 86400 * 1000);
+    // The above calculation might be off by one day due to timezone differences.
+    // A robust way is to create the date in UTC.
+    return new Date(Date.UTC(0, 0, serial - 1));
 }
 
 
@@ -287,7 +286,7 @@ export default function KpiPage() {
       }
 
       const selectedMonthName = selectedFile.split('/').pop()?.split('.')[0]?.toUpperCase().trim() || '';
-      const selectedMonthNumber = monthNameToNumber[selectedMonthName.trim()];
+      const selectedMonthNumber = monthNameToNumber[selectedMonthName];
       const yearNumber = parseInt(selectedYear, 10);
 
       filteredData.forEach((row: any) => {
@@ -371,7 +370,7 @@ export default function KpiPage() {
             }
 
             if (date instanceof Date && !isNaN(date.getTime())) {
-                if (date.getFullYear() === yearNumber && date.getMonth() === selectedMonthNumber) {
+                if (date.getUTCFullYear() === yearNumber && date.getUTCMonth() === selectedMonthNumber) {
                     inPeriodCount++;
                 } else {
                     outOfPeriodCount++;
@@ -1388,3 +1387,5 @@ const handleDownloadConsolidatedXls = async () => {
     </div>
   );
 }
+
+    
