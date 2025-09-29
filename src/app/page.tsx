@@ -367,7 +367,7 @@ export default function KpiPage() {
                     const month = parseInt(parts[1], 10) - 1;
                     const year = parseInt(parts[2], 10);
                     if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-                        date = new Date(year, month, day);
+                        date = new Date(Date.UTC(year, month, day));
                     }
                 }
             }
