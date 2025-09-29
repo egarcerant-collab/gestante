@@ -47,15 +47,11 @@ type ChartDataItem = {
 // Function to convert Excel serial date to JS Date
 const excelSerialDateToJSDate = (serial: number) => {
     // Excel's epoch starts on 1900-01-01, but it incorrectly thinks 1900 is a leap year.
-    // So, we need to adjust. JavaScript's epoch is 1970-01-01.
-    // The number of days between 1900-01-01 and 1970-01-01 is 25569.
-    // Excel incorrectly treats 1900 as a leap year, so we subtract 1 more if the date is after Feb 1900.
-    // For simplicity, we use 25569 which is standard for dates after Feb 1900.
-    const date = new Date((serial - 25569) * 86400 * 1000);
-    // The above calculation might be off by one day due to timezone differences.
-    // A robust way is to create the date in UTC.
+    // JavaScript's epoch is 1970-01-01. The number of days between is 25569.
+    // Excel incorrectly treats 1900 as a leap year, so we subtract 1 more.
+    // We create the date in UTC to avoid timezone shifts.
     return new Date(Date.UTC(0, 0, serial - 1));
-}
+};
 
 
 export default function KpiPage() {
@@ -287,7 +283,14 @@ export default function KpiPage() {
 
       const selectedMonthName = selectedFile.split('/').pop()?.split('.')[0]?.toUpperCase().trim() || '';
       const selectedMonthNumber = monthNameToNumber[selectedMonthName];
-      const yearNumber = parseInt(selectedYear, 10);
+      const yearFromPath = selectedFile.match(/\/(\d{4})\//)?.[1];
+      const yearNumber = yearFromPath ? parseInt(yearFromPath, 10) : parseInt(selectedYear || "0", 10);
+
+      if (!yearNumber || isNaN(yearNumber)) {
+        setError("No se pudo determinar el año. Selecciona un año en la interfaz o revisa el nombre de la carpeta.");
+        setIsLoading(false);
+        return;
+      }
 
       filteredData.forEach((row: any) => {
         const cleanedRow: { [key: string]: any } = {};
@@ -1387,5 +1390,3 @@ const handleDownloadConsolidatedXls = async () => {
     </div>
   );
 }
-
-    
