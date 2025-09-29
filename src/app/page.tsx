@@ -44,6 +44,26 @@ type ChartDataItem = {
   [key: string]: number | string;
 };
 
+// Function to convert Excel serial date to JS Date
+const excelSerialDateToJSDate = (serial: number) => {
+    // Excel's epoch starts on 1900-01-01, but it incorrectly thinks 1900 is a leap year.
+    // The subtraction of 2 accounts for this and the 1-based vs 0-based day count.
+    const utc_days = Math.floor(serial - 25569);
+    const utc_value = utc_days * 86400;
+    const date_info = new Date(utc_value * 1000);
+    
+    // Adjust for timezone offset to get the correct local date
+    const fractional_day = serial - Math.floor(serial) + 0.0000001;
+    let total_seconds = Math.floor(86400 * fractional_day);
+    const seconds = total_seconds % 60;
+    total_seconds -= seconds;
+    const hours = Math.floor(total_seconds / (60 * 60));
+    const minutes = Math.floor(total_seconds / 60) % 60;
+
+    return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate(), hours, minutes, seconds);
+}
+
+
 export default function KpiPage() {
   const [selectedFile, setSelectedFile] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<string>("");
@@ -339,18 +359,28 @@ export default function KpiPage() {
         }
 
         const ultimoControlValue = cleanedRow[ultimoControlHeader];
-        if (ultimoControlValue && typeof ultimoControlValue === 'string') {
-            const parts = ultimoControlValue.split('/');
-            if (parts.length === 3) {
-                const day = parseInt(parts[0], 10);
-                const month = parseInt(parts[1], 10) - 1;
-                const year = parseInt(parts[2], 10);
-                if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-                    if (year === yearNumber && month === selectedMonthNumber) {
-                        inPeriodCount++;
-                    } else {
-                        outOfPeriodCount++;
+        if (ultimoControlValue) {
+            let date: Date | null = null;
+            if (typeof ultimoControlValue === 'number') {
+                // Handle Excel serial date number
+                date = excelSerialDateToJSDate(ultimoControlValue);
+            } else if (typeof ultimoControlValue === 'string') {
+                const parts = ultimoControlValue.split('/');
+                if (parts.length === 3) {
+                    const day = parseInt(parts[0], 10);
+                    const month = parseInt(parts[1], 10) - 1; // JS months are 0-indexed
+                    const year = parseInt(parts[2], 10);
+                    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                        date = new Date(year, month, day);
                     }
+                }
+            }
+
+            if (date instanceof Date && !isNaN(date.getTime())) {
+                if (date.getFullYear() === yearNumber && date.getMonth() === selectedMonthNumber) {
+                    inPeriodCount++;
+                } else {
+                    outOfPeriodCount++;
                 }
             }
         }
@@ -980,7 +1010,7 @@ const handleDownloadConsolidatedXls = async () => {
         'Exámenes Sífilis Completos': kpiData.examenesSifilisCompletosResult,
         '% Tamizaje Sífilis': kpiData.resultadoTamizajeSifilisResult,
         'Toxoplasma Válidos': kpiData.toxoplasmaValidosResult,
-        '% Tamizaje Toxoplasma': kpiData.resultadoTamizajeToxoplasmaResult,
+        '% Tamizaje Toxoplasma': kpiData.resultadoToxoplasmaResult,
         'Exámenes Hepatitis B Completos': kpiData.examenesHbCompletosResult,
         '% Tamizaje Hepatitis B': kpiData.resultadoTamizajeHbResult,
         'Chagas Válidos': kpiData.chagasResultadosValidosResult,
@@ -1364,5 +1394,3 @@ const handleDownloadConsolidatedXls = async () => {
     </div>
   );
 }
-
-    
