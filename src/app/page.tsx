@@ -48,13 +48,18 @@ const excelSerialDateToJSDate = (serial: number) => {
     const utc_days = Math.floor(serial - 25569);
     const utc_value = utc_days * 86400;
     const date_info = new Date(utc_value * 1000);
+
     const fractional_day = serial - Math.floor(serial) + 0.0000001;
+
     let total_seconds = Math.floor(86400 * fractional_day);
     const seconds = total_seconds % 60;
     total_seconds -= seconds;
+
     const hours = Math.floor(total_seconds / (60 * 60));
     const minutes = Math.floor(total_seconds / 60) % 60;
-    return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate(), hours, minutes, seconds);
+    
+    // Create date in UTC to avoid timezone issues
+    return new Date(Date.UTC(date_info.getUTCFullYear(), date_info.getUTCMonth(), date_info.getUTCDate(), hours, minutes, seconds));
 };
 
 
@@ -290,8 +295,8 @@ export default function KpiPage() {
 
       const selectedMonthName = selectedFile.split('/').pop()?.split('.')[0]?.toUpperCase()?.trim() || '';
       const selectedMonthNumber = monthNameToNumber[selectedMonthName];
-      const yearNumber = parseInt(selectedYear, 10);
-
+      const yearFromPath = selectedFile.match(/\/(\d{4})\//)?.[1];
+      const yearNumber = yearFromPath ? parseInt(yearFromPath, 10) : parseInt(selectedYear || "0", 10);
 
       if (!yearNumber || isNaN(yearNumber)) {
         setError("No se pudo determinar el año. Selecciona un año en la interfaz.");
@@ -374,13 +379,13 @@ export default function KpiPage() {
                     const month = parseInt(parts[1], 10) - 1;
                     const year = parseInt(parts[2], 10);
                     if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-                        date = new Date(year, month, day);
+                         date = new Date(Date.UTC(year, month, day));
                     }
                 }
             }
-
+            
             if (date instanceof Date && !isNaN(date.getTime())) {
-                if (date.getFullYear() === yearNumber && date.getMonth() === selectedMonthNumber) {
+                if (date.getUTCFullYear() === yearNumber && date.getUTCMonth() === selectedMonthNumber) {
                     inPeriodCount++;
                 } else {
                     outOfPeriodCount++;
