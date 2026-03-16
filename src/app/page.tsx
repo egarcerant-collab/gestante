@@ -4,8 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import * as XLSX from "xlsx";
 import { saveAs } from 'file-saver';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { calcularNumeradorGinecologia, calcularDenominadorGinecologia } from '@/lib/kpi-helpers';
@@ -30,7 +28,9 @@ const availableFiles = {
     "JULIO": "/BASES/2025/JULIO.xlsx",
     "AGOSTO": "/BASES/2025/AGOSTO.xlsx",
   },
-  "2026": {},
+  "2026": {
+    "FEBRERO": "/BASES/2026/FEBRERO/febrero.xlsx",
+  },
 };
 
 const monthNameToNumber: { [key: string]: number } = {
@@ -172,8 +172,14 @@ export default function KpiPage() {
         if (!response.ok) {
           throw new Error(`No se pudo encontrar el archivo en la ruta especificada. Status: ${response.status}`);
         }
-        const data = await response.arrayBuffer();
-        const workbook = XLSX.read(data, { type: 'array' });
+        let workbook;
+        if (selectedFile.endsWith('.csv')) {
+          const text = await response.text();
+          workbook = XLSX.read(text, { type: 'string' });
+        } else {
+          const data = await response.arrayBuffer();
+          workbook = XLSX.read(data, { type: 'array' });
+        }
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         jsonData = XLSX.utils.sheet_to_json(worksheet, {
@@ -256,16 +262,21 @@ export default function KpiPage() {
       const sifilis1Header = pickHeader(firstClean, ["sifilis", "primera"]);
       const sifilis2Header = pickHeader(firstClean, ["sifilis", "segunda"]);
       const sifilis3Header = pickHeader(firstClean, ["sifilis", "tercera"]);
-      const toxoplasmaHeader = pickHeader(firstClean, ["toxoplasma"]);
+      const toxoplasmaHeader = pickHeader(firstClean, ["toxoplasma", "resultado"]);
       const hbResultadoHeader = pickHeader(firstClean, ["hepatitis", "b", "resultado"]);
       const hbFechaHeader = pickHeader(firstClean, ["hepatitis", "b", "fecha"]);
-      const chagasHeader = pickHeader(firstClean, ["chagas"]);
+      const chagasHeader = pickHeader(firstClean, ["chagas", "resultado"]);
       const eco1Header = pickHeader(firstClean, ["ecografia", "translucencia"]);
       const eco2Header = pickHeader(firstClean, ["ecografia", "anomalias"]);
       const eco3Header = pickHeader(firstClean, ["ecografia", "otras"]);
       const nutricionHeader = pickHeader(firstClean, ["nutricion"]);
-      const odontologiaHeader = pickHeader(firstClean, ["odontolog"]);
+      const odontologiaHeader = pickHeader(firstClean, ["odontolog", "fecha"]) || pickHeader(firstClean, ["odontolog"]);
       const ultimoControlHeader = pickHeader(firstClean, ["ultimo", "control", "prenatal"]);
+      const controlFechaHeaders = [
+        'fecha_1er_control', 'fecha_2do_control', 'fecha_3er_control',
+        'fecha_4to_control', 'fecha_5to_control', 'fecha_6to_control',
+        'fecha_7mo_control', 'fecha_8vo_control', 'fecha_9no_control'
+      ].map(frag => pickHeader(firstClean, [frag])).filter(h => h !== '');
       
       let captacionCount = 0;
       let controlCount = 0;
@@ -320,66 +331,79 @@ export default function KpiPage() {
           captacionCount++;
         }
 
+        const sd = (v: string) => v.trim() === '' || v.includes("sin datos") || v.includes("sin dato");
+
         const vih1Value = String(cleanedRow[vih1Header] || '').toLowerCase();
         const vih2Value = String(cleanedRow[vih2Header] || '').toLowerCase();
         const vih3Value = String(cleanedRow[vih3Header] || '').toLowerCase();
-        if (vih1Value.includes("sin datos") && vih2Value.includes("sin datos") && vih3Value.includes("sin datos")) {
+        if (sd(vih1Value) && sd(vih2Value) && sd(vih3Value)) {
           sinDatosVihCount++;
         }
 
         const sif1Value = String(cleanedRow[sifilis1Header] || '').toLowerCase().trim();
         const sif2Value = String(cleanedRow[sifilis2Header] || '').toLowerCase().trim();
         const sif3Value = String(cleanedRow[sifilis3Header] || '').toLowerCase().trim();
-        if (sif1Value.includes("sin datos") && sif2Value.includes("sin datos") && sif3Value.includes("sin datos")) {
+        if (sd(sif1Value) && sd(sif2Value) && sd(sif3Value)) {
             sinDatosSifilisCount++;
         }
 
         const toxoplasmaValue = String(cleanedRow[toxoplasmaHeader] || '').toLowerCase().trim();
-        if (toxoplasmaValue.includes("sin datos")) {
+        if (sd(toxoplasmaValue)) {
             sinDatosToxoplasmaCount++;
         }
 
         const hbResultadoValue = String(cleanedRow[hbResultadoHeader] || '').toLowerCase().trim();
         const hbFechaValue = cleanedRow[hbFechaHeader];
-        if (hbResultadoValue.includes("sin datos") && !(hbFechaValue === undefined || hbFechaValue === "")) {
+        if (sd(hbResultadoValue) && !(hbFechaValue === undefined || hbFechaValue === "")) {
             sinDatosHbCount++;
         }
 
         const chagasValue = String(cleanedRow[chagasHeader] || '').toLowerCase().trim();
-        if (chagasValue.includes("sin datos")) {
+        if (sd(chagasValue)) {
             sinDatosChagasCount++;
         }
 
         const eco1Value = String(cleanedRow[eco1Header] || '').toLowerCase().trim();
         const eco2Value = String(cleanedRow[eco2Header] || '').toLowerCase().trim();
         const eco3Value = String(cleanedRow[eco3Header] || '').toLowerCase().trim();
-        if (eco1Value.includes("sin datos") && eco2Value.includes("sin datos") && eco3Value.includes("sin datos")) {
+        if (sd(eco1Value) && sd(eco2Value) && sd(eco3Value)) {
             sinDatosEcografiaCount++;
         }
 
         const nutricionValue = String(cleanedRow[nutricionHeader] || '').toLowerCase().trim();
-        if (nutricionValue.includes("sin datos")) {
+        if (sd(nutricionValue)) {
             sinDatosNutricionCount++;
         }
 
         const odontologiaValue = String(cleanedRow[odontologiaHeader] || '').toLowerCase().trim();
-        if (odontologiaValue.includes("sin datos")) {
+        if (sd(odontologiaValue)) {
             sinDatosOdontologiaCount++;
         }
 
-        const ultimoControlValue = cleanedRow[ultimoControlHeader];
+        let ultimoControlValue = cleanedRow[ultimoControlHeader];
+        if (!ultimoControlValue && controlFechaHeaders.length > 0) {
+          for (let i = controlFechaHeaders.length - 1; i >= 0; i--) {
+            const v = cleanedRow[controlFechaHeaders[i]];
+            if (v !== undefined && v !== '') { ultimoControlValue = v; break; }
+          }
+        }
         if (ultimoControlValue) {
             let date: Date | null = null;
             if (typeof ultimoControlValue === 'number') {
                 date = excelSerialDateToJSDate(ultimoControlValue);
             } else if (typeof ultimoControlValue === 'string') {
-                const parts = ultimoControlValue.split('/');
-                if (parts.length === 3) {
-                    const day = parseInt(parts[0], 10);
-                    const month = parseInt(parts[1], 10) - 1;
-                    const year = parseInt(parts[2], 10);
-                    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-                         date = new Date(Date.UTC(year, month, day));
+                const numVal = parseFloat(ultimoControlValue);
+                if (!isNaN(numVal) && !ultimoControlValue.includes('/')) {
+                    date = excelSerialDateToJSDate(numVal);
+                } else {
+                    const parts = ultimoControlValue.split('/');
+                    if (parts.length === 3) {
+                        const day = parseInt(parts[0], 10);
+                        const month = parseInt(parts[1], 10) - 1;
+                        const year = parseInt(parts[2], 10);
+                        if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                             date = new Date(Date.UTC(year, month, day));
+                        }
                     }
                 }
             }
@@ -479,8 +503,14 @@ export default function KpiPage() {
 
         const response = await fetch(filePath);
         if (!response.ok) return null;
-        const data = await response.arrayBuffer();
-        const workbook = XLSX.read(data, { type: 'array' });
+        let workbook;
+        if (filePath.endsWith('.csv')) {
+          const text = await response.text();
+          workbook = XLSX.read(text, { type: 'string' });
+        } else {
+          const data = await response.arrayBuffer();
+          workbook = XLSX.read(data, { type: 'array' });
+        }
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
@@ -516,15 +546,15 @@ export default function KpiPage() {
         const sifilis1Header = pickHeader(firstClean, ["sifilis", "primera"]);
         const sifilis2Header = pickHeader(firstClean, ["sifilis", "segunda"]);
         const sifilis3Header = pickHeader(firstClean, ["sifilis", "tercera"]);
-        const toxoplasmaHeader = pickHeader(firstClean, ["toxoplasma"]);
+        const toxoplasmaHeader = pickHeader(firstClean, ["toxoplasma", "resultado"]);
         const hbResultadoHeader = pickHeader(firstClean, ["hepatitis", "b", "resultado"]);
         const hbFechaHeader = pickHeader(firstClean, ["hepatitis", "b", "fecha"]);
-        const chagasHeader = pickHeader(firstClean, ["chagas"]);
+        const chagasHeader = pickHeader(firstClean, ["chagas", "resultado"]);
         const eco1Header = pickHeader(firstClean, ["ecografia", "translucencia"]);
         const eco2Header = pickHeader(firstClean, ["ecografia", "anomalias"]);
         const eco3Header = pickHeader(firstClean, ["ecografia", "otras"]);
         const nutricionHeader = pickHeader(firstClean, ["nutricion"]);
-        const odontologiaHeader = pickHeader(firstClean, ["odontolog"]);
+        const odontologiaHeader = pickHeader(firstClean, ["odontolog", "fecha"]) || pickHeader(firstClean, ["odontolog"]);
         
         let controlCount = 0;
         let captacionCount = 0;
@@ -540,17 +570,18 @@ export default function KpiPage() {
         jsonData.forEach((row: any) => {
             const cleanedRow: { [key: string]: any } = {};
             for (const key in row) { cleanedRow[cleanHeader(key)] = row[key]; }
+            const sd2 = (v: string) => v.trim() === '' || v.includes("sin datos") || v.includes("sin dato");
             if (cleanedRow[controlHeader]) controlCount++;
             if (cleanedRow[captacionHeader] && parseFloat(cleanedRow[captacionHeader]) < 10) captacionCount++;
 
-            if (String(cleanedRow[vih1Header] || '').toLowerCase().includes("sin datos") && String(cleanedRow[vih2Header] || '').toLowerCase().includes("sin datos") && String(cleanedRow[vih3Header] || '').toLowerCase().includes("sin datos")) sinDatosVihCount++;
-            if (String(cleanedRow[sifilis1Header] || '').toLowerCase().includes("sin datos") && String(cleanedRow[sifilis2Header] || '').toLowerCase().includes("sin datos") && String(cleanedRow[sifilis3Header] || '').toLowerCase().includes("sin datos")) sinDatosSifilisCount++;
-            if (String(cleanedRow[toxoplasmaHeader] || '').toLowerCase().includes("sin datos")) sinDatosToxoplasmaCount++;
-            if (String(cleanedRow[hbResultadoHeader] || '').toLowerCase().includes("sin datos") && cleanedRow[hbFechaHeader]) sinDatosHbCount++;
-            if (String(cleanedRow[chagasHeader] || '').toLowerCase().includes("sin datos")) sinDatosChagasCount++;
-            if (String(cleanedRow[eco1Header] || '').toLowerCase().includes("sin datos") && String(cleanedRow[eco2Header] || '').toLowerCase().includes("sin datos") && String(cleanedRow[eco3Header] || '').toLowerCase().includes("sin datos")) sinDatosEcografiaCount++;
-            if (String(cleanedRow[nutricionHeader] || '').toLowerCase().includes("sin datos")) sinDatosNutricionCount++;
-            if (String(cleanedRow[odontologiaHeader] || '').toLowerCase().includes("sin datos")) sinDatosOdontologiaCount++;
+            if (sd2(String(cleanedRow[vih1Header] || '').toLowerCase()) && sd2(String(cleanedRow[vih2Header] || '').toLowerCase()) && sd2(String(cleanedRow[vih3Header] || '').toLowerCase())) sinDatosVihCount++;
+            if (sd2(String(cleanedRow[sifilis1Header] || '').toLowerCase()) && sd2(String(cleanedRow[sifilis2Header] || '').toLowerCase()) && sd2(String(cleanedRow[sifilis3Header] || '').toLowerCase())) sinDatosSifilisCount++;
+            if (sd2(String(cleanedRow[toxoplasmaHeader] || '').toLowerCase())) sinDatosToxoplasmaCount++;
+            if (sd2(String(cleanedRow[hbResultadoHeader] || '').toLowerCase()) && cleanedRow[hbFechaHeader]) sinDatosHbCount++;
+            if (sd2(String(cleanedRow[chagasHeader] || '').toLowerCase())) sinDatosChagasCount++;
+            if (sd2(String(cleanedRow[eco1Header] || '').toLowerCase()) && sd2(String(cleanedRow[eco2Header] || '').toLowerCase()) && sd2(String(cleanedRow[eco3Header] || '').toLowerCase())) sinDatosEcografiaCount++;
+            if (sd2(String(cleanedRow[nutricionHeader] || '').toLowerCase())) sinDatosNutricionCount++;
+            if (sd2(String(cleanedRow[odontologiaHeader] || '').toLowerCase())) sinDatosOdontologiaCount++;
         });
 
         const totalRegistros = jsonData.length;
@@ -840,15 +871,15 @@ export default function KpiPage() {
         const sifilis1Header = pickHeader(firstClean, ["sifilis", "primera"]);
         const sifilis2Header = pickHeader(firstClean, ["sifilis", "segunda"]);
         const sifilis3Header = pickHeader(firstClean, ["sifilis", "tercera"]);
-        const toxoplasmaHeader = pickHeader(firstClean, ["toxoplasma"]);
+        const toxoplasmaHeader = pickHeader(firstClean, ["toxoplasma", "resultado"]);
         const hbResultadoHeader = pickHeader(firstClean, ["hepatitis", "b", "resultado"]);
         const hbFechaHeader = pickHeader(firstClean, ["hepatitis", "b", "fecha"]);
-        const chagasHeader = pickHeader(firstClean, ["chagas"]);
+        const chagasHeader = pickHeader(firstClean, ["chagas", "resultado"]);
         const eco1Header = pickHeader(firstClean, ["ecografia", "translucencia"]);
         const eco2Header = pickHeader(firstClean, ["ecografia", "anomalias"]);
         const eco3Header = pickHeader(firstClean, ["ecografia", "otras"]);
         const nutricionHeader = pickHeader(firstClean, ["nutricion"]);
-        const odontologiaHeader = pickHeader(firstClean, ["odontolog"]);
+        const odontologiaHeader = pickHeader(firstClean, ["odontolog", "fecha"]) || pickHeader(firstClean, ["odontolog"]);
         
         let captacionCount = 0;
         let controlCount = 0;
@@ -881,50 +912,52 @@ export default function KpiPage() {
             captacionCount++;
           }
 
+          const sd = (v: string) => v.trim() === '' || v.includes("sin datos") || v.includes("sin dato");
+
           const vih1Value = String(cleanedRow[vih1Header] || '').toLowerCase();
           const vih2Value = String(cleanedRow[vih2Header] || '').toLowerCase();
           const vih3Value = String(cleanedRow[vih3Header] || '').toLowerCase();
-          if (vih1Value.includes("sin datos") && vih2Value.includes("sin datos") && vih3Value.includes("sin datos")) {
+          if (sd(vih1Value) && sd(vih2Value) && sd(vih3Value)) {
             sinDatosVihCount++;
           }
 
           const sif1Value = String(cleanedRow[sifilis1Header] || '').toLowerCase().trim();
           const sif2Value = String(cleanedRow[sifilis2Header] || '').toLowerCase().trim();
           const sif3Value = String(cleanedRow[sifilis3Header] || '').toLowerCase().trim();
-          if (sif1Value.includes("sin datos") && sif2Value.includes("sin datos") && sif3Value.includes("sin datos")) {
+          if (sd(sif1Value) && sd(sif2Value) && sd(sif3Value)) {
               sinDatosSifilisCount++;
           }
 
           const toxoplasmaValue = String(cleanedRow[toxoplasmaHeader] || '').toLowerCase().trim();
-          if (toxoplasmaValue.includes("sin datos")) {
+          if (sd(toxoplasmaValue)) {
               sinDatosToxoplasmaCount++;
           }
 
           const hbResultadoValue = String(cleanedRow[hbResultadoHeader] || '').toLowerCase().trim();
           const hbFechaValue = cleanedRow[hbFechaHeader];
-          if (hbResultadoValue.includes("sin datos") && !(hbFechaValue === undefined || hbFechaValue === "")) {
+          if (sd(hbResultadoValue) && !(hbFechaValue === undefined || hbFechaValue === "")) {
               sinDatosHbCount++;
           }
 
           const chagasValue = String(cleanedRow[chagasHeader] || '').toLowerCase().trim();
-          if (chagasValue.includes("sin datos")) {
+          if (sd(chagasValue)) {
               sinDatosChagasCount++;
           }
 
           const eco1Value = String(cleanedRow[eco1Header] || '').toLowerCase().trim();
           const eco2Value = String(cleanedRow[eco2Header] || '').toLowerCase().trim();
           const eco3Value = String(cleanedRow[eco3Header] || '').toLowerCase().trim();
-          if (eco1Value.includes("sin datos") && eco2Value.includes("sin datos") && eco3Value.includes("sin datos")) {
+          if (sd(eco1Value) && sd(eco2Value) && sd(eco3Value)) {
               sinDatosEcografiaCount++;
           }
 
           const nutricionValue = String(cleanedRow[nutricionHeader] || '').toLowerCase().trim();
-          if (nutricionValue.includes("sin datos")) {
+          if (sd(nutricionValue)) {
               sinDatosNutricionCount++;
           }
 
           const odontologiaValue = String(cleanedRow[odontologiaHeader] || '').toLowerCase().trim();
-          if (odontologiaValue.includes("sin datos")) {
+          if (sd(odontologiaValue)) {
               sinDatosOdontologiaCount++;
           }
         });
@@ -1178,37 +1211,77 @@ const handleDownloadConsolidatedXls = async () => {
     }
   ];
 
+  const groupPalette = [
+    { accent: "text-teal-300",   border: "border-teal-500/25",   bg: "bg-teal-500/8",    bar: "bg-teal-400",    dot: "bg-teal-400"   },
+    { accent: "text-purple-300", border: "border-purple-500/25", bg: "bg-purple-500/8",  bar: "bg-purple-400",  dot: "bg-purple-400" },
+    { accent: "text-rose-300",   border: "border-rose-500/25",   bg: "bg-rose-500/8",    bar: "bg-rose-400",    dot: "bg-rose-400"   },
+    { accent: "text-orange-300", border: "border-orange-500/25", bg: "bg-orange-500/8",  bar: "bg-orange-400",  dot: "bg-orange-400" },
+    { accent: "text-yellow-300", border: "border-yellow-500/25", bg: "bg-yellow-500/8",  bar: "bg-yellow-400",  dot: "bg-yellow-400" },
+    { accent: "text-red-300",    border: "border-red-500/25",    bg: "bg-red-500/8",     bar: "bg-red-400",     dot: "bg-red-400"    },
+    { accent: "text-blue-300",   border: "border-blue-500/25",   bg: "bg-blue-500/8",    bar: "bg-blue-400",    dot: "bg-blue-400"   },
+    { accent: "text-green-300",  border: "border-green-500/25",  bg: "bg-green-500/8",   bar: "bg-green-400",   dot: "bg-green-400"  },
+    { accent: "text-cyan-300",   border: "border-cyan-500/25",   bg: "bg-cyan-500/8",    bar: "bg-cyan-400",    dot: "bg-cyan-400"   },
+    { accent: "text-violet-300", border: "border-violet-500/25", bg: "bg-violet-500/8",  bar: "bg-violet-400",  dot: "bg-violet-400" },
+    { accent: "text-indigo-300", border: "border-indigo-500/25", bg: "bg-indigo-500/8",  bar: "bg-indigo-400",  dot: "bg-indigo-400" },
+  ];
+
+  const groupEmojis = ["🤰","🔬","🧫","🦠","🧪","🩸","📡","🥗","🦷","👩‍⚕️","📅"];
+
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-gray-100 dark:bg-gray-900">
-      <Card className="w-full max-w-6xl">
-        <CardHeader>
-          <CardTitle>Cálculo de Indicadores de Gestantes</CardTitle>
-          <CardDescription>
-            Selecciona un año para ver el resumen mensual y luego un mes para calcular los indicadores detallados.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="grid gap-1.5">
-              <Label htmlFor="year-selector">Selecciona un año</Label>
+    <div className="min-h-screen w-full" style={{ background: "linear-gradient(135deg, #0f172a 0%, #0c1a2e 40%, #0f2027 70%, #0f172a 100%)" }}>
+
+      {/* ── TOP HEADER ────────────────────────────────────────────── */}
+      <header style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}
+        className="sticky top-0 z-30 shadow-xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 shadow-lg"
+            style={{ background: "linear-gradient(135deg, #14b8a6, #3b82f6)", boxShadow: "0 0 20px rgba(20,184,166,0.4)" }}>
+            🤰
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-white font-bold text-lg sm:text-xl tracking-tight leading-tight">
+              Sistema de Indicadores Materno-Perinatales
+            </h1>
+            <p className="text-blue-300/70 text-xs sm:text-sm truncate">
+              Seguimiento a la Gestión del Riesgo en Salud · Dusakawi EPSI
+            </p>
+          </div>
+          {hasCalculated && gestantesControlResult !== null && (
+            <div className="hidden sm:flex flex-col items-end flex-shrink-0">
+              <span className="text-white/40 text-xs uppercase tracking-widest">Gestantes</span>
+              <span className="text-teal-300 text-2xl font-bold leading-none">{gestantesControlResult.toLocaleString()}</span>
+            </div>
+          )}
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-5">
+
+        {/* ── SELECCIÓN ─────────────────────────────────────────────── */}
+        <section className="rounded-3xl p-6 shadow-2xl"
+          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(16px)" }}>
+          <p className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-5">📁 Selección de Datos</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+            <div className="space-y-2">
+              <Label className="text-blue-200/80 text-sm font-medium">Año</Label>
               <Select onValueChange={handleYearChange} value={selectedYear}>
-                <SelectTrigger id="year-selector">
+                <SelectTrigger className="h-11 rounded-xl border-white/15 text-white" style={{ background: "rgba(255,255,255,0.08)" }}>
                   <SelectValue placeholder="Elige un año..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent style={{ background: "#1e293b", border: "1px solid rgba(255,255,255,0.1)" }} className="text-white">
                   {Object.keys(availableFiles).map(year => (
                     <SelectItem key={year} value={year}>{year}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="excel-file">Selecciona un mes</Label>
+            <div className="space-y-2">
+              <Label className="text-blue-200/80 text-sm font-medium">Mes</Label>
               <Select onValueChange={handleFileChange} value={selectedFile.split('/').pop()?.split('.')[0]} disabled={!selectedYear}>
-                <SelectTrigger id="excel-file">
+                <SelectTrigger className="h-11 rounded-xl border-white/15 text-white disabled:opacity-40" style={{ background: "rgba(255,255,255,0.08)" }}>
                   <SelectValue placeholder="Elige un mes..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent style={{ background: "#1e293b", border: "1px solid rgba(255,255,255,0.1)" }} className="text-white">
                   {months.map(month => (
                     <SelectItem key={month} value={month}>{month}</SelectItem>
                   ))}
@@ -1216,151 +1289,179 @@ const handleDownloadConsolidatedXls = async () => {
               </Select>
             </div>
           </div>
-          
-          <div className="flex flex-col md:flex-row gap-4 mt-4">
-            <Button onClick={handleGenerateChart} className="flex-1" disabled={isChartLoading || !selectedYear}>
-                {isChartLoading ? "Generando Gráfico..." : "Generar Gráficos Vigencia"}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button onClick={handleGenerateChart} disabled={isChartLoading || !selectedYear}
+              className="flex-1 h-12 rounded-xl font-semibold text-white transition-all disabled:opacity-40"
+              style={{ background: "linear-gradient(135deg, #2563eb, #1d4ed8)", boxShadow: "0 4px 15px rgba(37,99,235,0.35)" }}>
+              {isChartLoading ? "⏳ Generando..." : "📊 Gráficos de Vigencia"}
             </Button>
-            <Button onClick={() => calculateKpi(true)} className="flex-1" disabled={isLoading || !selectedFile}>
-            {isLoading ? "Calculando..." : "Calcular Indicadores"}
+            <Button onClick={() => calculateKpi(true)} disabled={isLoading || !selectedFile}
+              className="flex-1 h-12 rounded-xl font-semibold text-white transition-all disabled:opacity-40"
+              style={{ background: "linear-gradient(135deg, #14b8a6, #059669)", boxShadow: "0 4px 15px rgba(20,184,166,0.35)" }}>
+              {isLoading ? "⏳ Calculando..." : "✅ Calcular Indicadores"}
             </Button>
           </div>
+        </section>
 
-          {isChartLoading && <p>Cargando datos para gráficos...</p>}
-          {chartData.length > 0 && !isChartLoading && (
-             <div className="mt-4" ref={chartContainerRef}>
-                <Carousel
-                    opts={{
-                        align: "start",
-                    }}
-                    className="w-full"
-                >
-                    <CarouselContent>
-                        {chartGroups.map((chartInfo, index) => (
-                            <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/1">
-                                <div className="p-1">
-                                    <h3 className="text-lg font-semibold mb-2 text-center">{chartInfo.title} ({selectedYear})</h3>
-                                    <MonthlyKpiChart data={chartData} dataKey={chartInfo.dataKey} fillColor={chartInfo.color} />
-                                </div>
-                            </CarouselItem>
-                        ))}
-                    </CarouselContent>
-                    <CarouselPrevious />
-                    <CarouselNext />
-                </Carousel>
-             </div>
-          )}
-
-          {hasCalculated && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <div className="grid gap-1.5">
-                <Label htmlFor="department-filter">Departamento</Label>
-                <Select
-                    onValueChange={handleDepartmentChange}
-                    value={selectedDepartment}
-                    disabled={departments.length === 0}
-                >
-                    <SelectTrigger id="department-filter">
-                    <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                    <SelectItem value="todos">Todos</SelectItem>
-                    {departments.map(dept => (
-                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                    ))}
-                    </SelectContent>
-                </Select>
-                </div>
-                <div className="grid gap-1.5">
-                <Label htmlFor="municipality-filter">Municipio</Label>
-                <Select
-                    onValueChange={handleMunicipalityChange}
-                    value={selectedMunicipality}
-                    disabled={municipalities.length === 0}
-                >
-                    <SelectTrigger id="municipality-filter">
-                    <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                    <SelectItem value="todos">Todos</SelectItem>
-                    {municipalities.map(muni => (
-                        <SelectItem key={muni} value={muni}>{muni}</SelectItem>
-                    ))}
-                    </SelectContent>
-                </Select>
-                </div>
-                <div className="grid gap-1.5">
-                <Label htmlFor="ips-filter">IPS Primaria</Label>
-                <Select
-                    onValueChange={handleIpsChange}
-                    value={selectedIps}
-                    disabled={ipsList.length === 0}
-                >
-                    <SelectTrigger id="ips-filter">
-                    <SelectValue placeholder="Todas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                    <SelectItem value="todos">Todas</SelectItem>
-                    {ipsList.map(ips => (
-                        <SelectItem key={ips} value={ips}>{ips}</SelectItem>
-                    ))}
-                    </SelectContent>
-                </Select>
-                </div>
+        {/* ── ERROR ─────────────────────────────────────────────────── */}
+        {error && (
+          <div className="rounded-2xl px-5 py-4 flex items-start gap-3"
+            style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}>
+            <span className="text-red-400 text-xl flex-shrink-0 mt-0.5">⚠️</span>
+            <div>
+              <p className="text-red-300 font-semibold text-sm">Error</p>
+              <p className="text-red-400/80 text-sm mt-0.5">{error}</p>
             </div>
-          )}
+          </div>
+        )}
 
+        {/* ── LOADING ───────────────────────────────────────────────── */}
+        {(isLoading || isChartLoading) && (
+          <div className="rounded-2xl px-5 py-4 flex items-center gap-3"
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <div className="w-5 h-5 border-2 border-teal-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+            <p className="text-blue-200/80 text-sm">
+              {isChartLoading ? "Cargando datos de gráficos..." : "Procesando datos, por favor espera..."}
+            </p>
+          </div>
+        )}
 
-        </CardContent>
-        <CardFooter className="flex flex-col items-start gap-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>
-                {error}
-              </AlertDescription>
-            </Alert>
-          )}
+        {/* ── GRÁFICOS ──────────────────────────────────────────────── */}
+        {chartData.length > 0 && !isChartLoading && (
+          <section className="rounded-3xl p-6 shadow-2xl"
+            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(16px)" }}
+            ref={chartContainerRef}>
+            <p className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-4">
+              📈 Tendencia Mensual · {selectedYear}
+            </p>
+            <Carousel opts={{ align: "start" }} className="w-full">
+              <CarouselContent>
+                {chartGroups.map((chartInfo, index) => (
+                  <CarouselItem key={index} className="md:basis-1/1">
+                    <div className="p-1">
+                      <h3 className="text-white/70 text-sm font-semibold mb-3 text-center">{chartInfo.title} ({selectedYear})</h3>
+                      <MonthlyKpiChart data={chartData} dataKey={chartInfo.dataKey} fillColor={chartInfo.color} />
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="text-white border-white/20 hover:bg-white/10" style={{ background: "rgba(255,255,255,0.08)" }} />
+              <CarouselNext className="text-white border-white/20 hover:bg-white/10" style={{ background: "rgba(255,255,255,0.08)" }} />
+            </Carousel>
+          </section>
+        )}
 
-          {hasCalculated && kpiGroups.map((group, index) => (
-             <div key={index} className="w-full">
-              {group.title && <h3 className="text-lg font-semibold mb-2">{group.title}</h3>}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-                {group.kpis.map((kpi, kpiIndex) => {
-                  if (kpi.value === null) return null;
-                  return (
-                    <Alert key={kpiIndex}>
-                      <AlertTitle>{kpi.title}</AlertTitle>
-                      <AlertDescription>
-                        <p className="text-2xl font-bold">
-                          {kpi.isPercentage ? `${kpi.value.toFixed(2)}%` : kpi.value}
-                        </p>
-                        <p className="text-sm text-muted-foreground">{kpi.description}</p>
-                      </AlertDescription>
-                    </Alert>
-                  );
-                })}
-              </div>
+        {/* ── FILTROS ───────────────────────────────────────────────── */}
+        {hasCalculated && (
+          <section className="rounded-3xl p-6 shadow-2xl"
+            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(16px)" }}>
+            <p className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-5">🔍 Filtros</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                { label: "Departamento", value: selectedDepartment, onChange: handleDepartmentChange, options: departments, placeholder: "Todos", disabled: departments.length === 0 },
+                { label: "Municipio",    value: selectedMunicipality, onChange: handleMunicipalityChange, options: municipalities, placeholder: "Todos", disabled: municipalities.length === 0 },
+                { label: "IPS Primaria", value: selectedIps,          onChange: handleIpsChange,          options: ipsList,         placeholder: "Todas", disabled: ipsList.length === 0 },
+              ].map(({ label, value, onChange, options, placeholder, disabled }) => (
+                <div key={label} className="space-y-2">
+                  <Label className="text-blue-200/80 text-sm font-medium">{label}</Label>
+                  <Select onValueChange={onChange} value={value} disabled={disabled}>
+                    <SelectTrigger className="h-11 rounded-xl border-white/15 text-white disabled:opacity-40" style={{ background: "rgba(255,255,255,0.08)" }}>
+                      <SelectValue placeholder={placeholder} />
+                    </SelectTrigger>
+                    <SelectContent style={{ background: "#1e293b", border: "1px solid rgba(255,255,255,0.1)" }} className="text-white">
+                      <SelectItem value="todos">{placeholder}</SelectItem>
+                      {options.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
             </div>
-          ))}
-          {hasCalculated && (
-              <div className="w-full mt-4 flex flex-col md:flex-row gap-4">
-                <Button onClick={handleGeneratePdf} className="flex-1" variant="outline" disabled={isLoading}>
-                    Generar Informe PDF (Actual)
+          </section>
+        )}
+
+        {/* ── KPI RESULTS ───────────────────────────────────────────── */}
+        {hasCalculated && (
+          <div className="space-y-4">
+            <p className="text-white/40 text-xs font-semibold uppercase tracking-widest">📋 Resultados de Indicadores</p>
+            {kpiGroups.map((group, groupIdx) => {
+              const c = groupPalette[groupIdx % groupPalette.length];
+              const emoji = groupEmojis[groupIdx % groupEmojis.length];
+              const validKpis = group.kpis.filter(k => k.value !== null);
+              if (validKpis.length === 0) return null;
+              return (
+                <section key={groupIdx} className={`rounded-3xl p-5 shadow-xl border ${c.border}`}
+                  style={{ background: "rgba(255,255,255,0.04)", backdropFilter: "blur(12px)" }}>
+                  {/* Section Header */}
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-lg">{emoji}</span>
+                    <h3 className={`${c.accent} text-sm font-bold uppercase tracking-widest`}>{group.title}</h3>
+                  </div>
+                  {/* Cards Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {group.kpis.map((kpi, kpiIdx) => {
+                      if (kpi.value === null) return null;
+                      const pct = kpi.isPercentage ? Math.min(Math.max(kpi.value, 0), 100) : null;
+                      const valueColor = pct !== null
+                        ? pct >= 80 ? "#34d399" : pct >= 50 ? "#fbbf24" : "#f87171"
+                        : "#f8fafc";
+                      const barColor = pct !== null
+                        ? pct >= 80 ? "#34d399" : pct >= 50 ? "#fbbf24" : "#f87171"
+                        : "";
+                      return (
+                        <div key={kpiIdx}
+                          className="rounded-2xl p-4 transition-all hover:scale-[1.02] cursor-default"
+                          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)" }}>
+                          <p className="text-white/45 text-xs font-medium mb-2 leading-tight">{kpi.title}</p>
+                          <p className="text-3xl font-black leading-none mb-2" style={{ color: valueColor }}>
+                            {kpi.isPercentage
+                              ? `${kpi.value.toFixed(1)}%`
+                              : kpi.value.toLocaleString('es-CO')}
+                          </p>
+                          {pct !== null && (
+                            <div className="h-1.5 w-full rounded-full overflow-hidden mb-2" style={{ background: "rgba(255,255,255,0.1)" }}>
+                              <div className="h-full rounded-full transition-all duration-700"
+                                style={{ width: `${pct}%`, background: barColor }} />
+                            </div>
+                          )}
+                          <p className="text-white/25 text-xs leading-snug">{kpi.description}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── EXPORT BUTTONS ────────────────────────────────────────── */}
+        {hasCalculated && (
+          <section className="rounded-3xl p-6 shadow-2xl"
+            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(16px)" }}>
+            <p className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-4">📤 Exportar Resultados</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+              {[
+                { label: "📄 Informe PDF", onClick: handleGeneratePdf, disabled: isLoading },
+                { label: isLoading ? "⏳ Generando..." : "📦 PDFs por IPS", onClick: handleGeneratePdfsEnMasa, disabled: isLoading || !ipsList.length },
+                { label: isLoading ? "⏳ Generando..." : "📊 Consolidado XLSX", onClick: handleDownloadConsolidatedXls, disabled: isLoading || !hasCalculated },
+                { label: isLoading ? "⏳ IA en proceso..." : "🤖 Informe Anual IA", onClick: handleGenerateAnnualReport, disabled: isLoading || !chartData || chartData.length === 0 },
+              ].map(({ label, onClick, disabled }) => (
+                <Button key={label} onClick={onClick} disabled={disabled} variant="outline"
+                  className="h-12 rounded-xl font-semibold text-white border-white/15 transition-all hover:scale-[1.02] disabled:opacity-40"
+                  style={{ background: "rgba(255,255,255,0.06)" }}>
+                  {label}
                 </Button>
-                <Button onClick={handleGeneratePdfsEnMasa} className="flex-1" variant="outline" disabled={isLoading || !ipsList.length}>
-                    {isLoading ? "Generando..." : "Generar Informes por IPS (En Masa)"}
-                </Button>
-                <Button onClick={handleDownloadConsolidatedXls} className="flex-1" variant="outline" disabled={isLoading || !hasCalculated}>
-                    {isLoading ? "Generando..." : "Descargar Consolidado (XLSX)"}
-                </Button>
-                 <Button onClick={handleGenerateAnnualReport} className="flex-1" variant="outline" disabled={isLoading || !chartData || chartData.length === 0}>
-                    {isLoading ? "Generando Informe IA..." : "Generar Informe Anual con IA"}
-                </Button>
+              ))}
             </div>
-            )}
-        </CardFooter>
-      </Card>
+          </section>
+        )}
+
+        {/* ── FOOTER ────────────────────────────────────────────────── */}
+        <footer className="text-center pb-6 pt-2">
+          <p className="text-white/15 text-xs">Sistema de Indicadores Materno-Perinatales · Dusakawi EPSI · {new Date().getFullYear()}</p>
+        </footer>
+
+      </main>
     </div>
   );
 }
