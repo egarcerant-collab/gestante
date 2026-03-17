@@ -1448,7 +1448,7 @@ const handleDownloadConsolidatedXls = async () => {
                 { id: "pdf",   label: "📄 Informe PDF",                                          onClick: handleGeneratePdf,            disabled: isLoading },
                 { id: "masa",  label: isLoading ? "⏳ Generando..." : "📦 PDFs por IPS",          onClick: handleGeneratePdfsEnMasa,     disabled: isLoading || !ipsList.length },
                 { id: "xlsx",  label: isLoading ? "⏳ Generando..." : "📊 Consolidado XLSX",      onClick: handleDownloadConsolidatedXls, disabled: isLoading || !hasCalculated },
-                { id: "anual", label: isLoading ? "⏳ IA en proceso..." : "🤖 Informe Anual IA",  onClick: handleGenerateAnnualReport,   disabled: isLoading || !chartData || chartData.length === 0 },
+                { id: "anual", label: isLoading ? "⏳ Generando..." : "📋 Informe Anual",  onClick: handleGenerateAnnualReport,   disabled: isLoading || !chartData || chartData.length === 0 },
               ].map(({ id, label, onClick, disabled }) => (
                 <Button key={id} onClick={onClick} disabled={disabled} variant="outline"
                   className="h-12 rounded-xl font-semibold text-white border-white/15 transition-all hover:scale-[1.02] disabled:opacity-40"

@@ -2,11 +2,9 @@
 // Genera un PDF con el esquema solicitado usando pdfmake.
 // A4, cuerpo 12 pt, títulos en negrilla. Si registras Arial, la usará;
 // de lo contrario usará la fuente por defecto (Roboto).
+// NOTA: pdfmake se carga desde CDN via <Script> en layout.tsx (window.pdfMake)
+// para evitar problemas de chunking con webpack en Next.js 15.
 import type { TDocumentDefinitions } from 'pdfmake/interfaces';
-
-// NOTA: pdfmake y vfs_fonts se importan dinámicamente dentro de generarInformePDF
-// para evitar problemas con el Server-Side Rendering (SSR) de Next.js, ya que
-// estas librerías dependen de APIs del navegador.
 
 export type Texto = string | (string | { text: string; bold?: boolean })[];
 
@@ -249,26 +247,17 @@ export async function generarInformePDF(
   obtenerBlob = false
 ): Promise<Blob | void> {
 
-  // Dynamic imports to ensure they only run on the client side
-  const pdfMake = (await import("pdfmake/build/pdfmake")).default;
-  const pdfFonts = await import("pdfmake/build/vfs_fonts");
+  // Usar pdfMake cargado desde CDN via <Script> en layout.tsx
+  const pdfMake = (window as any).pdfMake;
+  if (!pdfMake) throw new Error("pdfMake no está disponible. Verifica que los scripts CDN se cargaron correctamente.");
 
-  // Asignación correcta y robusta de las fuentes.
-  // La importación de vfs_fonts modifica el objeto pdfMake.
-  // No es necesaria una asignación manual si se importan en el mismo ámbito.
-  if (pdfMake && pdfFonts) {
-    pdfMake.vfs = (pdfFonts as any).pdfMake?.vfs ?? (pdfFonts as any).vfs;
-  } else {
-     throw new Error("Could not load pdfmake or vfs_fonts.");
-  }
-  
   await registerArialIfAvailable(pdfMake);
 
   const docDefinition = buildDocDefinition(datos, images);
   
   if (obtenerBlob) {
     return new Promise<Blob>((resolve) => {
-      pdfMake.createPdf(docDefinition).getBlob(blob => resolve(blob));
+      pdfMake.createPdf(docDefinition).getBlob((blob: Blob) => resolve(blob));
     });
   } else {
     pdfMake.createPdf(docDefinition).download(nombre);
