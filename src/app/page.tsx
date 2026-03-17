@@ -16,17 +16,8 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import html2canvas from 'html2canvas';
 
 const availableFiles = {
-  "2025": {
-    "ENERO": "/BASES/2025/ENERO.xlsx",
-    "FEBRERO": "/BASES/2025/FEBRERO.xlsx",
-    "MARZO": "/BASES/2025/MARZO.xlsx",
-    "ABRIL": "/BASES/2025/ABRIL.xlsx",
-    "MAYO": "/BASES/2025/MAYO.xlsx",
-    "JUNIO": "/BASES/2025/JUNIO.xlsx",
-    "JULIO": "/BASES/2025/JULIO.xlsx",
-    "AGOSTO": "/BASES/2025/AGOSTO.xlsx",
-  },
   "2026": {
+    "ENERO": "/BASES/2026/ENERO/enero.xlsx",
     "FEBRERO": "/BASES/2026/FEBRERO/febrero.xlsx",
   },
 };
@@ -1459,6 +1450,18 @@ const handleDownloadConsolidatedXls = async () => {
             </div>
           </section>
         )}
+
+        {/* ── CONSOLIDADO ANUAL ───────────────────────────────────────── */}
+        <section className="rounded-3xl p-6 shadow-2xl"
+          style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
+          <p className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-3">📊 Herramientas Adicionales</p>
+          <a href="/consolidado-anual">
+            <button className="w-full h-12 rounded-xl font-semibold text-white transition-all hover:scale-[1.01]"
+              style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>
+              📋 Consolidado Anual por IPS
+            </button>
+          </a>
+        </section>
 
         {/* ── FOOTER ────────────────────────────────────────────────── */}
         <footer className="text-center pb-6 pt-2">

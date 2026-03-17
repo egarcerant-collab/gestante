@@ -27,9 +27,11 @@ export function calcularNumeradorGinecologia(rowsRaw: Record<string, any>[]): nu
     return v === "" || v === "sin_dato" || v === "sin_datos" || v === "si_datos";
   };
 
-  // Detectar columnas en la primera fila
-  const firstClean: Record<string, any> = {};
-  Object.keys(rowsRaw[0]).forEach(k => { firstClean[clean(k)] = rowsRaw[0][k]; });
+  // Detectar columnas escaneando todas las filas (la primera puede tener celdas vacías)
+  const allKeys = new Set<string>();
+  for (const row of rowsRaw) { Object.keys(row).forEach(k => allKeys.add(clean(k))); }
+  const firstClean: Record<string, true> = {};
+  allKeys.forEach(k => { firstClean[k] = true; });
 
   const keyRiesgo = pickKey(firstClean, ["clasificacion", "riesgo"]);
   const keyGine1  = pickKey(firstClean, ["ginecolog", "primera"])
@@ -83,10 +85,12 @@ export function calcularDenominadorGinecologia(rowsRaw: Record<string, any>[]): 
   
   const norm = (s: any) => clean(String(s ?? "").trim());
 
-  // Detectar columnas en la primera fila
-  const firstClean: Record<string, any> = {};
-  Object.keys(rowsRaw[0]).forEach(k => { firstClean[clean(k)] = rowsRaw[0][k]; });
-  
+  // Detectar columnas escaneando todas las filas
+  const allKeys2 = new Set<string>();
+  for (const row of rowsRaw) { Object.keys(row).forEach(k => allKeys2.add(clean(k))); }
+  const firstClean: Record<string, true> = {};
+  allKeys2.forEach(k => { firstClean[k] = true; });
+
   const keyRiesgo = pickKey(firstClean, ["clasificacion", "riesgo"]);
 
   if (!keyRiesgo) {
