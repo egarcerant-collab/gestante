@@ -1,0 +1,276 @@
+// src/lib/informe-riesgo-pdf.ts
+// Genera un PDF con el esquema solicitado usando pdfmake.
+// A4, cuerpo 12 pt, títulos en negrilla. Si registras Arial, la usará;
+// de lo contrario usará la fuente por defecto (Roboto).
+import type { TDocumentDefinitions } from 'pdfmake/interfaces';
+
+// NOTA: pdfmake y vfs_fonts se importan dinámicamente dentro de generarInformePDF
+// para evitar problemas con el Server-Side Rendering (SSR) de Next.js, ya que
+// estas librerías dependen de APIs del navegador.
+
+export type Texto = string | (string | { text: string; bold?: boolean })[];
+
+export interface InformeDatos {
+  encabezado: {
+    proceso: string;
+    formato: string;
+    entidad: string;
+    vigencia: string;
+    lugarFecha: string;
+  };
+  referencia: Texto;
+  analisisResumido: Texto[];
+  datosAExtraer: Array<{ label: string; valor: string }>;
+  hallazgosCalidad: Texto[];
+  recomendaciones: Texto[];
+  observaciones: Texto[];
+  inasistentes?: Array<{ [key: string]: string }>;
+  kpisTFG?: {
+    TFG_E1: number;
+    TFG_E2: number;
+    TFG_E3: number;
+    TFG_E4: number;
+    TFG_E5: number;
+    TFG_TOTAL: number;
+  };
+  analisisAnual?: string;
+}
+
+export interface PdfImages {
+  background?: string;
+  charts?: Array<{ id: string; dataUrl: string }>;
+}
+
+
+// ------------------------------------------------------------
+// (Opcional) Registrar Arial. Sustituye las constantes con tus TTF en base64.
+// Si no las defines, pdfmake usará Roboto y todo seguirá funcionando.
+export async function registerArialIfAvailable(pdfMakeInstance: any) {
+  // Coloca tus TTF en base64 (sin encabezado data:) si quieres Arial real.
+  const ARIAL = "";            // <-- "AAEAAA..." (Arial.ttf en base64)
+  const ARIAL_BOLD = "";       // <-- (Arial Bold.ttf en base64)
+  const ARIAL_ITALIC = "";     // <-- (Arial Italic.ttf en base64)
+  const ARIAL_BOLDITALIC = ""; // <-- (Arial Bold Italic.ttf en base64)
+
+  if (ARIAL && ARIAL_BOLD) {
+    pdfMakeInstance.vfs = pdfMakeInstance.vfs || {};
+    pdfMakeInstance.vfs["Arial.ttf"] = ARIAL;
+    pdfMakeInstance.vfs["Arial-Bold.ttf"] = ARIAL_BOLD;
+    if (ARIAL_ITALIC) pdfMakeInstance.vfs["Arial-Italic.ttf"] = ARIAL_ITALIC;
+    if (ARIAL_BOLDITALIC) pdfMakeInstance.vfs["Arial-BoldItalic.ttf"] = ARIAL_BOLDITALIC;
+
+    pdfMakeInstance.fonts = {
+      ...(pdfMakeInstance.fonts || {}),
+      Arial: {
+        normal: "Arial.ttf",
+        bold: "Arial-Bold.ttf",
+        italics: ARIAL_ITALIC ? "Arial-Italic.ttf" : "Arial.ttf",
+        bolditalics: ARIAL_BOLDITALIC ? "Arial-BoldItalic.ttf" : "Arial-Bold.ttf",
+      },
+    };
+  }
+}
+
+// ------------------------------------------------------------
+export function buildDocDefinition(data: InformeDatos, images?: PdfImages): TDocumentDefinitions {
+  const h = (t: string) => ({ text: t, style: "h1", margin: [0, 10, 0, 4] });
+  const p = (t: Texto) => ({ text: t as any, style: "p", margin: [0, 0, 0, 4] });
+
+  let mainContent: any[] = [];
+  
+  if (data.analisisAnual) {
+     mainContent.push(
+        h("Análisis Anual de Gestión del Riesgo Materno-Perinatal"),
+        p(data.analisisAnual),
+     );
+     if (images?.charts) {
+        mainContent.push({ text: "Visualización de Indicadores Anuales", style: "h1", margin: [0, 15, 0, 5], pageBreak: 'before' });
+        images.charts.forEach(chart => {
+            mainContent.push({
+                image: chart.dataUrl,
+                width: 500,
+                alignment: 'center',
+                margin: [0, 0, 0, 15]
+            });
+        });
+     }
+  } else {
+    mainContent = [
+        // Encabezado
+        h("Encabezado"),
+        {
+          style: "p",
+          margin: [0, 0, 0, 6],
+          table: {
+            widths: ["auto", "*"],
+            body: [
+              [{ text: "Proceso:", bold: true }, data.encabezado.proceso],
+              [{ text: "Formato:", bold: true }, data.encabezado.formato],
+              [{ text: "Entidad evaluada:", bold: true }, data.encabezado.entidad],
+              [{ text: "Vigencia del análisis:", bold: true }, data.encabezado.vigencia],
+              [{ text: "Lugar/Fecha de evaluación:", bold: true }, data.encabezado.lugarFecha],
+            ],
+          },
+          layout: "lightHorizontalLines",
+        },
+
+        // Referencia
+        h("Referencia"),
+        p(data.referencia),
+
+        // Análisis resumido
+        h("Análisis resumido"),
+        {
+          ul: data.analisisResumido.map((t) => ({ text: t, style: "p" })),
+          margin: [0, 0, 0, 8],
+        },
+
+        // Datos a extraer
+        h("Datos a extraer"),
+        {
+          table: {
+            headerRows: 1,
+            widths: ["*", "auto"],
+            body: [
+              [
+                { text: "Campo", style: "tableHeader" },
+                { text: "Valor", style: "tableHeader" },
+              ],
+              ...data.datosAExtraer.map((r) => [r.label, r.valor]),
+            ],
+          },
+          layout: "lightHorizontalLines",
+          margin: [0, 0, 0, 8],
+        },
+
+        // Calidad del dato
+        h("Calidad del dato (hallazgos)"),
+        p("Se evidencia baja calidad en el reporte de la base de datos de la ruta materno perinatal, por lo cual se hace necesario reportar la información dentro de la data urgentemente teniendo en cuenta los siguientes hallazgos:"),
+        { ol: data.hallazgosCalidad.map(t => ({text: t, style: "p"})) },
+
+        // Recomendaciones
+        h("RECOMENDACIONES"),
+        { ul: data.recomendaciones.map(t => ({text: t, style: "p"})) },
+
+        // Observaciones
+        h("OBSERVACIONES"),
+        { ul: data.observaciones.map(t => ({text: t, style: "p"})) }
+      ];
+  }
+    
+    if (data.kpisTFG) {
+    mainContent.push(
+      h("Resultados TFG por Estadio"),
+      {
+        table: {
+          headerRows: 1,
+          widths: ['*', 'auto'],
+          body: [
+            [{ text: "Estadio", style: "tableHeader" }, { text: "N° Pacientes", style: "tableHeader" }],
+            ["Estadio 1 (TFG >= 90)", data.kpisTFG.TFG_E1],
+            ["Estadio 2 (TFG 60-89)", data.kpisTFG.TFG_E2],
+            ["Estadio 3 (TFG 30-59)", data.kpisTFG.TFG_E3],
+            ["Estadio 4 (TFG 15-29)", data.kpisTFG.TFG_E4],
+            ["Estadio 5 (TFG < 15)", data.kpisTFG.TFG_E5],
+            [{text: "Total con Estadio Informado", bold: true}, {text: data.kpisTFG.TFG_TOTAL, bold: true}],
+          ],
+        },
+        layout: 'lightHorizontalLines',
+        margin: [0, 0, 0, 8],
+      }
+    );
+  }
+
+  if (data.inasistentes && data.inasistentes.length > 0) {
+    mainContent.push(
+      { text: "Listado de Pacientes Inasistentes a Control", style: "h1", margin: [0, 10, 0, 4], pageBreak: "before" },
+      {
+        table: {
+          headerRows: 1,
+          widths: ['auto', '*', '*', '*'],
+          body: [
+            [
+              { text: 'Tipo ID', style: 'tableHeader' },
+              { text: 'N° ID', style: 'tableHeader' },
+              { text: 'Teléfono', style: 'tableHeader' },
+              { text: 'Dirección', style: 'tableHeader' },
+            ],
+            ...data.inasistentes.map(p => [
+                p.tipo_id, p.id, p.tel, p.dir
+            ]),
+          ],
+        },
+        layout: 'lightHorizontalLines',
+        margin: [0, 0, 0, 8],
+        fontSize: 8,
+      }
+    );
+  }
+
+
+  const docDefinition: TDocumentDefinitions = {
+    pageSize: "A4",
+    pageMargins: [60, 88, 60, 74], 
+    info: {
+      title: "Evaluación de Indicadores – Gestión del Riesgo",
+      author: "Dirección del Riesgo en Salud",
+      subject: "Informe de evaluación HTA/DM/Gestantes",
+      keywords: "salud pública, riesgo, indicadores, HTA, DM",
+    },
+    defaultStyle: { fontSize: 12, lineHeight: 1.2, font: "Roboto", alignment: 'justify' },
+    styles: {
+      h1: { bold: true, fontSize: 12 },
+      h2: { bold: true, fontSize: 12, margin: [0, 8, 0, 4] },
+      p: { fontSize: 12 },
+      small: { fontSize: 10 },
+      tableHeader: { bold: true, fontSize: 10, color: 'black' },
+    },
+    background: function(currentPage: number, pageSize: any) {
+        if (!images?.background) return null;
+        return {
+            image: images.background,
+            width: pageSize.width,
+            height: pageSize.height,
+            absolutePosition: { x: 0, y: 0 },
+            opacity: 1
+        };
+    },
+    content: mainContent
+  };
+  
+  return docDefinition;
+}
+
+// ------------------------------------------------------------
+export async function generarInformePDF(
+  datos: InformeDatos,
+  images: PdfImages | undefined,
+  nombre = "Informe_Evaluacion_Riesgo.pdf",
+  obtenerBlob = false
+): Promise<Blob | void> {
+
+  // Dynamic imports to ensure they only run on the client side
+  const pdfMake = (await import("pdfmake/build/pdfmake")).default;
+  const pdfFonts = await import("pdfmake/build/vfs_fonts");
+
+  // Asignación correcta y robusta de las fuentes.
+  // La importación de vfs_fonts modifica el objeto pdfMake.
+  // No es necesaria una asignación manual si se importan en el mismo ámbito.
+  if (pdfMake && pdfFonts) {
+    pdfMake.vfs = pdfFonts.pdfMake.vfs;
+  } else {
+     throw new Error("Could not load pdfmake or vfs_fonts.");
+  }
+  
+  await registerArialIfAvailable(pdfMake);
+
+  const docDefinition = buildDocDefinition(datos, images);
+  
+  if (obtenerBlob) {
+    return new Promise<Blob>((resolve) => {
+      pdfMake.createPdf(docDefinition).getBlob(blob => resolve(blob));
+    });
+  } else {
+    pdfMake.createPdf(docDefinition).download(nombre);
+  }
+}
