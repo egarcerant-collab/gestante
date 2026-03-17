@@ -106,7 +106,10 @@ export default function KpiPage() {
   const [firmanteCargo, setFirmanteCargo] = useState('');
   const [firmanteImageDataUrl, setFirmanteImageDataUrl] = useState<string>('');
   const [pendingPdfAction, setPendingPdfAction] = useState<'single' | 'bulk' | null>(null);
+  const [selectedDeptsModal, setSelectedDeptsModal] = useState<string[]>(['CESAR', 'LA GUAJIRA', 'MAGDALENA']);
   const firmanteFileRef = useRef<HTMLInputElement>(null);
+
+  const DEPARTAMENTOS = ['CESAR', 'LA GUAJIRA', 'MAGDALENA'];
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   
@@ -804,7 +807,11 @@ export default function KpiPage() {
     } else if (pendingPdfAction === 'bulk') {
       setIsLoading(true);
       const zip = new JSZip();
-      for (const ips of ipsList) {
+      // Filtrar IPS por los departamentos seleccionados en el modal
+      const ipsEnDeptos = selectedDeptsModal.length > 0
+        ? ipsList.filter(ips => filterData.some(fd => fd.ips === ips && selectedDeptsModal.includes(fd.dept)))
+        : ipsList;
+      for (const ips of ipsEnDeptos) {
         const kpiDataForIps = await calculateKpiForFilter('', '', ips);
         try {
           const datosParaPdf = prepararDatosParaPdf(kpiDataForIps, ips, undefined, undefined, firmante);
@@ -1304,6 +1311,41 @@ const handleDownloadConsolidatedXls = async () => {
               </div>
             </div>
 
+            {/* Selección de departamentos — solo en modo masivo */}
+            {pendingPdfAction === 'bulk' && (
+              <div className="mt-5">
+                <label className="text-slate-300 text-sm font-medium block mb-2">Departamentos a incluir</label>
+                <div className="space-y-2">
+                  {DEPARTAMENTOS.map(dept => (
+                    <label key={dept} className="flex items-center gap-3 cursor-pointer group">
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          checked={selectedDeptsModal.includes(dept)}
+                          onChange={e => {
+                            if (e.target.checked) setSelectedDeptsModal(prev => [...prev, dept]);
+                            else setSelectedDeptsModal(prev => prev.filter(d => d !== dept));
+                          }}
+                          className="sr-only"
+                        />
+                        <div className="w-5 h-5 rounded flex items-center justify-center border transition"
+                          style={{
+                            background: selectedDeptsModal.includes(dept) ? 'linear-gradient(135deg,#3b82f6,#14b8a6)' : 'rgba(255,255,255,0.05)',
+                            borderColor: selectedDeptsModal.includes(dept) ? '#3b82f6' : 'rgba(99,179,237,0.3)'
+                          }}>
+                          {selectedDeptsModal.includes(dept) && <span className="text-white text-xs font-bold">✓</span>}
+                        </div>
+                      </div>
+                      <span className="text-slate-300 text-sm group-hover:text-white transition">{dept}</span>
+                    </label>
+                  ))}
+                </div>
+                {selectedDeptsModal.length === 0 && (
+                  <p className="text-red-400 text-xs mt-2">Selecciona al menos un departamento.</p>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-3 mt-6">
               <button
                 type="button"
@@ -1316,7 +1358,7 @@ const handleDownloadConsolidatedXls = async () => {
               <button
                 type="button"
                 onClick={confirmarFirmante}
-                disabled={!firmanteNombre.trim()}
+                disabled={!firmanteNombre.trim() || (pendingPdfAction === 'bulk' && selectedDeptsModal.length === 0)}
                 className="flex-1 py-2 rounded-lg text-sm font-semibold text-white transition disabled:opacity-40"
                 style={{ background: 'linear-gradient(135deg, #3b82f6, #14b8a6)' }}
               >
