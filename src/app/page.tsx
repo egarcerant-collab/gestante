@@ -712,14 +712,15 @@ export default function KpiPage() {
     }
   }
   
-  const prepararDatosParaPdf = (kpiData: KpiResults, ips: string, recomendacionesAI?: string[], analisisAnual?: string, firmante?: { nombre: string; cargo: string; firma?: string }): InformeDatos => {
+  const prepararDatosParaPdf = (kpiData: KpiResults, ips: string, recomendacionesAI?: string[], analisisAnual?: string, firmante?: { nombre: string; cargo: string; firma?: string }, dept?: string, muni?: string): InformeDatos => {
     const monthName = selectedMonth || 'N/A';
+    const vigencia = [monthName, selectedYear].filter(Boolean).join(' ');
     return {
         encabezado: {
             proceso: "Seguimiento a la Gestión del Riesgo en Salud",
             formato: "Informe de Evaluación de Indicadores",
-            entidad: ips,
-            vigencia: monthName,
+            entidad: [dept, muni, ips].filter(Boolean).join(' / '),
+            vigencia,
             lugarFecha: `VALLEDUPAR, ${new Date().toLocaleDateString('es-CO')}`
         },
         referencia: "Análisis de indicadores de gestantes basado en el archivo cargado.",
@@ -807,23 +808,34 @@ export default function KpiPage() {
     } else if (pendingPdfAction === 'bulk') {
       setIsLoading(true);
       const zip = new JSZip();
-      // Filtrar IPS por los departamentos seleccionados en el modal
-      const ipsEnDeptos = selectedDeptsModal.length > 0
-        ? ipsList.filter(ips => filterData.some(fd => fd.ips === ips && selectedDeptsModal.includes(fd.dept)))
-        : ipsList;
-      for (const ips of ipsEnDeptos) {
-        const kpiDataForIps = await calculateKpiForFilter('', '', ips);
+
+      // Combinaciones únicas Dept+Muni+IPS filtradas por departamentos seleccionados
+      const seen = new Set<string>();
+      const combos: { dept: string; muni: string; ips: string }[] = [];
+      for (const fd of filterData) {
+        if (selectedDeptsModal.length > 0 && !selectedDeptsModal.includes(fd.dept)) continue;
+        const key = `${fd.dept}|${fd.muni}|${fd.ips}`;
+        if (!seen.has(key)) { seen.add(key); combos.push(fd); }
+      }
+
+      for (const { dept, muni, ips } of combos) {
         try {
-          const datosParaPdf = prepararDatosParaPdf(kpiDataForIps, ips, undefined, undefined, firmante);
+          const kpiDataForCombo = await calculateKpiForFilter(dept, muni, ips);
+          const datosParaPdf = prepararDatosParaPdf(kpiDataForCombo, ips, undefined, undefined, firmante, dept, muni);
           const images: PdfImages = { background: '/imagenes/IMAGENEN UNIFICADA.jpg' };
           const blob = await generarInformePDF(datosParaPdf, images, '', true);
-          if (blob) zip.file(`Informe_Riesgo_${ips.replace(/\s/g, '_')}.pdf`, blob);
+          if (blob) {
+            const safe = (s: string) => s.replace(/[^a-zA-Z0-9_\-]/g, '_').replace(/_+/g, '_');
+            const fileName = `${safe(dept)}_${safe(muni)}_${safe(ips)}_${selectedYear}.pdf`;
+            zip.file(fileName, blob);
+          }
         } catch (pdfError) {
-          console.error(`Error generando PDF para ${ips}:`, pdfError);
+          console.error(`Error generando PDF para ${dept}/${muni}/${ips}:`, pdfError);
         }
       }
+
       zip.generateAsync({ type: "blob" }).then(content => {
-        saveAs(content, `Informes_por_IPS_${new Date().toISOString().slice(0,10)}.zip`);
+        saveAs(content, `Informes_${selectedYear}_${new Date().toISOString().slice(0,10)}.zip`);
       });
       setIsLoading(false);
     }
