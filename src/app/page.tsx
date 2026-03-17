@@ -11,8 +11,6 @@ import { generarInformePDF } from '@/lib/informe-riesgo-pdf';
 import type { InformeDatos, PdfImages } from '@/lib/informe-riesgo-pdf';
 import JSZip from 'jszip';
 import type { KpiResults } from '@/lib/types';
-import { generateRecommendations } from '@/ai/flows/generate-recommendations-flow';
-import { generateAnnualReport } from '@/ai/flows/generate-annual-report-flow';
 import { MonthlyKpiChart } from '@/components/charts/MonthlyKpiChart';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import html2canvas from 'html2canvas';
@@ -779,13 +777,6 @@ export default function KpiPage() {
     };
     
     try {
-        const aiRecommendations = await generateRecommendations(currentKpiData);
-        const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General", aiRecommendations);
-        const images: PdfImages = { background: '/imagenes/IMAGENEN UNIFICADA.jpg' };
-        await generarInformePDF(datosParaPdf, images);
-    } catch (aiError) {
-        console.error("Error generating AI recommendations:", aiError);
-        setError("Error al generar las recomendaciones de IA. Usando valores por defecto.");
         const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General");
         const images: PdfImages = { background: '/imagenes/IMAGENEN UNIFICADA.jpg' };
         await generarInformePDF(datosParaPdf, images);
@@ -806,8 +797,7 @@ export default function KpiPage() {
         const kpiDataForIps = await calculateKpiForFilter('', '', ips); 
         
         try {
-            const aiRecommendations = await generateRecommendations(kpiDataForIps);
-            const datosParaPdf = prepararDatosParaPdf(kpiDataForIps, ips, aiRecommendations);
+            const datosParaPdf = prepararDatosParaPdf(kpiDataForIps, ips);
             const images: PdfImages = { background: '/imagenes/IMAGENEN UNIFICADA.jpg' };
             const blob = await generarInformePDF(datosParaPdf, images, '', true);
 
@@ -815,15 +805,8 @@ export default function KpiPage() {
                 const fileName = `Informe_Riesgo_${ips.replace(/\s/g, '_')}.pdf`;
                 zip.file(fileName, blob);
             }
-        } catch (aiError) {
-            console.error(`Error generando recomendaciones de IA para ${ips}:`, aiError);
-            const datosParaPdf = prepararDatosParaPdf(kpiDataForIps, ips);
-            const images: PdfImages = { background: '/imagenes/IMAGENEN UNIFICADA.jpg' };
-            const blob = await generarInformePDF(datosParaPdf, images, '', true);
-            if (blob) {
-                const fileName = `Informe_Riesgo_${ips.replace(/\s/g, '_')}_sin_IA.pdf`;
-                zip.file(fileName, blob);
-            }
+        } catch (pdfError) {
+            console.error(`Error generando PDF para ${ips}:`, pdfError);
         }
     }
 
@@ -1098,43 +1081,45 @@ const handleDownloadConsolidatedXls = async () => {
     setError(null);
 
     try {
-        // 1. Generate AI Analysis
-        const analysis = await generateAnnualReport({
-            year: selectedYear,
-            monthlyData: chartData as any, // Cast because the object shape is compatible
-            ips: selectedIps || "Consolidado General"
+        // 1. Análisis automático basado en datos reales
+        const promedios: Record<string, number> = {};
+        const indicadores = ['Captación Oportuna','Tamizaje VIH','Tamizaje Sífilis','Tamizaje Toxoplasma','Tamizaje Hepatitis B','Tamizaje Chagas','Ecografías','Nutrición','Odontología'];
+        indicadores.forEach(ind => {
+            const vals = chartData.map((d: any) => d[ind] ?? 0).filter((v: number) => v > 0);
+            promedios[ind] = vals.length ? vals.reduce((a: number, b: number) => a + b, 0) / vals.length : 0;
         });
+        const mejores = indicadores.filter(i => promedios[i] >= 80).join(', ') || 'Ninguno supera el 80%';
+        const criticos = indicadores.filter(i => promedios[i] < 60).join(', ') || 'Todos superan el 60%';
+        const meses = chartData.map((d: any) => d.name).join(', ');
+        const analysis = `INFORME DE VIGENCIA ${selectedYear} — ${selectedIps || 'Consolidado General'}\n\n` +
+            `Meses analizados: ${meses}.\n\n` +
+            `RESUMEN DE PROMEDIOS:\n${indicadores.map(i => `• ${i}: ${promedios[i].toFixed(1)}%`).join('\n')}\n\n` +
+            `INDICADORES CON BUEN DESEMPEÑO (≥80%): ${mejores}.\n\n` +
+            `INDICADORES CRÍTICOS (<60%): ${criticos}.\n\n` +
+            `RECOMENDACIÓN: Fortalecer los procesos de seguimiento en los indicadores críticos mediante estrategias de demanda inducida, verificación de registros y articulación con las IPS prestadoras de servicios materno-perinatales.`;
 
-        // 2. Capture Chart Images
+        // 2. Capturar imágenes de gráficos
         const chartImages: { id: string; dataUrl: string }[] = [];
         if (chartContainerRef.current) {
             const chartElements = chartContainerRef.current.querySelectorAll('.recharts-responsive-container');
             for (let i = 0; i < chartElements.length; i++) {
                 const canvas = await html2canvas(chartElements[i] as HTMLElement);
-                chartImages.push({
-                    id: `chart${i + 1}`,
-                    dataUrl: canvas.toDataURL('image/png'),
-                });
+                chartImages.push({ id: `chart${i + 1}`, dataUrl: canvas.toDataURL('image/png') });
             }
         }
-        
+
         const images: PdfImages = {
-          background: '/imagenes/IMAGENEN UNIFICADA.jpg',
-          charts: chartImages.length > 0 ? chartImages : undefined
+            background: '/imagenes/IMAGENEN UNIFICADA.jpg',
+            charts: chartImages.length > 0 ? chartImages : undefined
         };
 
-        // 4. Prepare data for PDF
         const datosParaPdf = prepararDatosParaPdf({} as KpiResults, selectedIps || "Dusakawi EPSI (Consolidado)", undefined, analysis);
-        
-        // Use a more descriptive name
-        const fileName = `Informe_Anual_IA_${selectedYear}.pdf`;
-
-        // 5. Generate PDF
+        const fileName = `Informe_Anual_${selectedYear}.pdf`;
         await generarInformePDF(datosParaPdf, images, fileName);
 
     } catch (err: any) {
-        console.error("Error generating annual AI report:", err);
-        setError(err.message || "Ocurrió un error al generar el informe anual con IA.");
+        console.error("Error generating annual report:", err);
+        setError(err.message || "Ocurrió un error al generar el informe anual.");
     } finally {
         setIsLoading(false);
     }
