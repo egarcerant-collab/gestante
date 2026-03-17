@@ -33,9 +33,9 @@ export function calcularNumeradorGinecologia(rowsRaw: Record<string, any>[]): nu
   const firstClean: Record<string, true> = {};
   allKeys.forEach(k => { firstClean[k] = true; });
 
-  const keyRiesgo = pickKey(firstClean, ["clasificacion", "riesgo"]);
+  const keyRiesgo = pickKey(firstClean, ["clasificaci", "riesgo"]);
   const keyGine1  = pickKey(firstClean, ["ginecolog", "primera"])
-    || pickKey(firstClean, ["atencion", "especializada", "ginecolog"]);
+    || pickKey(firstClean, ["atenci", "especializada", "ginecolog"]);
   
   if (!keyRiesgo || !keyGine1) {
       console.error("Columnas clave no encontradas. Riesgo:", keyRiesgo, "Ginecología:", keyGine1);
@@ -91,7 +91,7 @@ export function calcularDenominadorGinecologia(rowsRaw: Record<string, any>[]): 
   const firstClean: Record<string, true> = {};
   allKeys2.forEach(k => { firstClean[k] = true; });
 
-  const keyRiesgo = pickKey(firstClean, ["clasificacion", "riesgo"]);
+  const keyRiesgo = pickKey(firstClean, ["clasificaci", "riesgo"]);
 
   if (!keyRiesgo) {
     console.error("Columna de riesgo no encontrada.");
