@@ -99,7 +99,15 @@ export default function KpiPage() {
 
   const [chartData, setChartData] = useState<ChartDataItem[]>([]);
   const [isChartLoading, setIsChartLoading] = useState(false);
-  
+
+  // Modal de firmante para PDFs
+  const [showFirmanteModal, setShowFirmanteModal] = useState(false);
+  const [firmanteNombre, setFirmanteNombre] = useState('');
+  const [firmanteCargo, setFirmanteCargo] = useState('');
+  const [firmanteImageDataUrl, setFirmanteImageDataUrl] = useState<string>('');
+  const [pendingPdfAction, setPendingPdfAction] = useState<'single' | 'bulk' | null>(null);
+  const firmanteFileRef = useRef<HTMLInputElement>(null);
+
   const chartContainerRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -701,7 +709,7 @@ export default function KpiPage() {
     }
   }
   
-  const prepararDatosParaPdf = (kpiData: KpiResults, ips: string, recomendacionesAI?: string[], analisisAnual?: string): InformeDatos => {
+  const prepararDatosParaPdf = (kpiData: KpiResults, ips: string, recomendacionesAI?: string[], analisisAnual?: string, firmante?: { nombre: string; cargo: string; firma?: string }): InformeDatos => {
     const monthName = selectedMonth || 'N/A';
     return {
         encabezado: {
@@ -752,60 +760,67 @@ export default function KpiPage() {
             "Se solicitan historias clínicas las cuales no han sido enviadas a la fecha por lo que no se realiza auditoria de historias durante el mes de junio.",
             "En base a los hallazgos y no conformidades encontradas queda el compromiso por parte de la IPS de enviar la base de datos del siguiente mes aplicando los correctivos para el mejoramiento continuo de la calidad y seguimiento oportuno a las gestantes."
         ],
+        firmante: firmante,
     };
   };
 
-  const handleGeneratePdf = async () => {
+  const handleGeneratePdf = () => {
     if (kpiResult === null) return;
-    setIsLoading(true);
+    setPendingPdfAction('single');
+    setShowFirmanteModal(true);
+  };
 
-    const currentKpiData: KpiResults = {
+  const handleGeneratePdfsEnMasa = () => {
+    if (!allData.length || !ipsList.length) {
+        setError("Por favor, primero calcula los indicadores para cargar los datos.");
+        return;
+    }
+    setPendingPdfAction('bulk');
+    setShowFirmanteModal(true);
+  };
+
+  const confirmarFirmante = async () => {
+    const firmante = firmanteNombre.trim()
+      ? { nombre: firmanteNombre.trim(), cargo: firmanteCargo.trim(), firma: firmanteImageDataUrl || undefined }
+      : undefined;
+    setShowFirmanteModal(false);
+
+    if (pendingPdfAction === 'single') {
+      setIsLoading(true);
+      const currentKpiData: KpiResults = {
         kpiResult, gestantesControlResult, controlPercentageResult, examenesVihCompletosResult, resultadoTamizajeVihResult,
         examenesSifilisCompletosResult, resultadoTamizajeSifilisResult, toxoplasmaValidosResult, resultadoToxoplasmaResult,
         examenesHbCompletosResult, resultadoTamizajeHbResult, chagasResultadosValidosResult, resultadoChagasResult,
         ecografiasValidasResult, resultadoEcografiasResult, nutricionResult, resultadoNutricionResult, odontologiaResult,
         resultadoOdontologiaResult, ginecologiaResult, denominadorGinecologiaResult, porcentajeGinecologiaResult
-    };
-    
-    try {
-        const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General");
+      };
+      try {
+        const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General", undefined, undefined, firmante);
         const images: PdfImages = { background: '/imagenes/IMAGENEN UNIFICADA.jpg' };
         await generarInformePDF(datosParaPdf, images);
-    } finally {
+      } finally {
         setIsLoading(false);
-    }
-  };
-  
-  const handleGeneratePdfsEnMasa = async () => {
-    if (!allData.length || !ipsList.length) {
-        setError("Por favor, primero calcula los indicadores para cargar los datos.");
-        return;
-    }
-    setIsLoading(true);
-    const zip = new JSZip();
-    
-    for (const ips of ipsList) {
-        const kpiDataForIps = await calculateKpiForFilter('', '', ips); 
-        
+      }
+    } else if (pendingPdfAction === 'bulk') {
+      setIsLoading(true);
+      const zip = new JSZip();
+      for (const ips of ipsList) {
+        const kpiDataForIps = await calculateKpiForFilter('', '', ips);
         try {
-            const datosParaPdf = prepararDatosParaPdf(kpiDataForIps, ips);
-            const images: PdfImages = { background: '/imagenes/IMAGENEN UNIFICADA.jpg' };
-            const blob = await generarInformePDF(datosParaPdf, images, '', true);
-
-            if (blob) {
-                const fileName = `Informe_Riesgo_${ips.replace(/\s/g, '_')}.pdf`;
-                zip.file(fileName, blob);
-            }
+          const datosParaPdf = prepararDatosParaPdf(kpiDataForIps, ips, undefined, undefined, firmante);
+          const images: PdfImages = { background: '/imagenes/IMAGENEN UNIFICADA.jpg' };
+          const blob = await generarInformePDF(datosParaPdf, images, '', true);
+          if (blob) zip.file(`Informe_Riesgo_${ips.replace(/\s/g, '_')}.pdf`, blob);
         } catch (pdfError) {
-            console.error(`Error generando PDF para ${ips}:`, pdfError);
+          console.error(`Error generando PDF para ${ips}:`, pdfError);
         }
-    }
-
-    zip.generateAsync({ type: "blob" }).then(content => {
+      }
+      zip.generateAsync({ type: "blob" }).then(content => {
         saveAs(content, `Informes_por_IPS_${new Date().toISOString().slice(0,10)}.zip`);
-    });
-
-    setIsLoading(false);
+      });
+      setIsLoading(false);
+    }
+    setPendingPdfAction(null);
   };
 
 
@@ -1224,6 +1239,93 @@ const handleDownloadConsolidatedXls = async () => {
 
   return (
     <div className="min-h-screen w-full" style={{ background: "linear-gradient(135deg, #0f172a 0%, #0c1a2e 40%, #0f2027 70%, #0f172a 100%)" }}>
+
+      {/* ── MODAL FIRMANTE ─────────────────────────────────────────── */}
+      {showFirmanteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}>
+          <div className="rounded-2xl p-7 w-full max-w-md shadow-2xl border" style={{ background: '#1a2744', borderColor: 'rgba(99,179,237,0.25)' }}>
+            <h2 className="text-white font-bold text-lg mb-1">Datos del Funcionario</h2>
+            <p className="text-slate-400 text-sm mb-5">Esta información aparecerá como firma en el informe PDF.</p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-slate-300 text-sm font-medium block mb-1">Nombre del Funcionario <span className="text-red-400">*</span></label>
+                <input
+                  type="text"
+                  value={firmanteNombre}
+                  onChange={e => setFirmanteNombre(e.target.value)}
+                  placeholder="Ej: Dr. Juan Pérez"
+                  className="w-full rounded-lg px-3 py-2 text-white text-sm border outline-none"
+                  style={{ background: 'rgba(255,255,255,0.07)', borderColor: 'rgba(99,179,237,0.3)' }}
+                />
+              </div>
+              <div>
+                <label className="text-slate-300 text-sm font-medium block mb-1">Cargo</label>
+                <input
+                  type="text"
+                  value={firmanteCargo}
+                  onChange={e => setFirmanteCargo(e.target.value)}
+                  placeholder="Ej: Coordinador de Salud Pública"
+                  className="w-full rounded-lg px-3 py-2 text-white text-sm border outline-none"
+                  style={{ background: 'rgba(255,255,255,0.07)', borderColor: 'rgba(99,179,237,0.3)' }}
+                />
+              </div>
+              <div>
+                <label className="text-slate-300 text-sm font-medium block mb-1">Firma (imagen opcional)</label>
+                <input
+                  ref={firmanteFileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onloadend = () => setFirmanteImageDataUrl(reader.result as string);
+                    reader.readAsDataURL(file);
+                  }}
+                />
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => firmanteFileRef.current?.click()}
+                    className="px-3 py-1.5 rounded-lg text-sm border text-slate-300 hover:text-white transition"
+                    style={{ borderColor: 'rgba(99,179,237,0.3)', background: 'rgba(255,255,255,0.05)' }}
+                  >
+                    {firmanteImageDataUrl ? '✅ Firma cargada' : '📁 Subir imagen de firma'}
+                  </button>
+                  {firmanteImageDataUrl && (
+                    <button type="button" onClick={() => setFirmanteImageDataUrl('')} className="text-red-400 text-xs hover:text-red-300">Quitar</button>
+                  )}
+                </div>
+                {firmanteImageDataUrl && (
+                  <img src={firmanteImageDataUrl} alt="Firma" className="mt-2 h-14 object-contain rounded border" style={{ borderColor: 'rgba(99,179,237,0.2)' }} />
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => { setShowFirmanteModal(false); setPendingPdfAction(null); }}
+                className="flex-1 py-2 rounded-lg text-sm text-slate-400 hover:text-white border transition"
+                style={{ borderColor: 'rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.04)' }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmarFirmante}
+                disabled={!firmanteNombre.trim()}
+                className="flex-1 py-2 rounded-lg text-sm font-semibold text-white transition disabled:opacity-40"
+                style={{ background: 'linear-gradient(135deg, #3b82f6, #14b8a6)' }}
+              >
+                Generar PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── TOP HEADER ────────────────────────────────────────────── */}
       <header style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}

@@ -32,6 +32,11 @@ export interface InformeDatos {
     TFG_TOTAL: number;
   };
   analisisAnual?: string;
+  firmante?: {
+    nombre: string;
+    cargo: string;
+    firma?: string; // base64 dataURL de imagen de firma
+  };
 }
 
 export interface PdfImages {
@@ -205,6 +210,20 @@ export function buildDocDefinition(data: InformeDatos, images?: PdfImages): TDoc
     );
   }
 
+
+  // Bloque de firma al final
+  if (data.firmante) {
+    const { nombre, cargo, firma } = data.firmante;
+    const firmaBlock: any[] = [
+      { text: '', margin: [0, 30, 0, 0] },
+      firma
+        ? { image: firma, width: 150, alignment: 'center', margin: [0, 0, 0, 4] }
+        : { canvas: [{ type: 'line', x1: 150, y1: 0, x2: 390, y2: 0, lineWidth: 1 }], margin: [0, 20, 0, 4] },
+      { text: nombre || '________________________________', alignment: 'center', bold: true, fontSize: 11 },
+      { text: cargo || '', alignment: 'center', fontSize: 10, color: '#555555' },
+    ];
+    mainContent.push(...firmaBlock);
+  }
 
   const docDefinition: TDocumentDefinitions = {
     pageSize: "A4",
