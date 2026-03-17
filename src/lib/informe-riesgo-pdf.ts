@@ -240,6 +240,18 @@ export function buildDocDefinition(data: InformeDatos, images?: PdfImages): TDoc
 }
 
 // ------------------------------------------------------------
+// Convierte una URL pública a dataURL base64 (necesario para pdfmake en el navegador)
+async function urlToBase64(url: string): Promise<string> {
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 export async function generarInformePDF(
   datos: InformeDatos,
   images: PdfImages | undefined,
@@ -253,7 +265,18 @@ export async function generarInformePDF(
 
   await registerArialIfAvailable(pdfMake);
 
-  const docDefinition = buildDocDefinition(datos, images);
+  // Convertir imagen de fondo a base64 si es una URL (pdfmake en browser requiere dataURL)
+  let resolvedImages = images;
+  if (images?.background && images.background.startsWith('/')) {
+    try {
+      const base64 = await urlToBase64(images.background);
+      resolvedImages = { ...images, background: base64 };
+    } catch {
+      resolvedImages = { ...images, background: undefined };
+    }
+  }
+
+  const docDefinition = buildDocDefinition(datos, resolvedImages);
   
   if (obtenerBlob) {
     return new Promise<Blob>((resolve) => {
