@@ -257,7 +257,7 @@ export async function generarInformePDF(
   // La importación de vfs_fonts modifica el objeto pdfMake.
   // No es necesaria una asignación manual si se importan en el mismo ámbito.
   if (pdfMake && pdfFonts) {
-    pdfMake.vfs = pdfFonts.pdfMake.vfs;
+    pdfMake.vfs = (pdfFonts as any).pdfMake?.vfs ?? (pdfFonts as any).vfs;
   } else {
      throw new Error("Could not load pdfmake or vfs_fonts.");
   }
