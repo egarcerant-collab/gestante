@@ -15,6 +15,60 @@ import { MonthlyKpiChart } from '@/components/charts/MonthlyKpiChart';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import html2canvas from 'html2canvas';
 
+/**
+ * Lee un workbook XLSX y devuelve filas con encabezados correctos.
+ * Soporta dos formatos:
+ *  - Hoja1 (enero/febrero): una sola fila de encabezados, datos desde fila 1.
+ *  - DATA (marzo+): dos filas de encabezados (fila 2=sección, fila 3=subcolumna),
+ *    datos desde fila 4.  Genera nombres concatenados iguales a los de Hoja1.
+ */
+function readWorkbookRows(workbook: any): any[] {
+  // 1. Intentar Hoja1 (formato enero/febrero)
+  if (workbook.SheetNames.includes('Hoja1')) {
+    const ws = workbook.Sheets['Hoja1'];
+    const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }) as any[][];
+    if (raw.length > 100) {
+      return XLSX.utils.sheet_to_json(ws, { raw: false, dateNF: 'dd/mm/yyyy' });
+    }
+  }
+
+  // 2. Intentar DATA (formato marzo+: 2 filas de encabezados, datos desde fila 4)
+  if (workbook.SheetNames.includes('DATA')) {
+    const ws = workbook.Sheets['DATA'];
+    const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }) as any[][];
+    if (raw.length > 50) {
+      const secRow: string[] = raw[2] as string[];
+      const subRow: string[] = raw[3] as string[];
+      const headers: string[] = [];
+      let lastSec = '';
+      for (let c = 0; c < secRow.length; c++) {
+        const sec = String(secRow[c] ?? '').trim();
+        const sub = String(subRow[c] ?? '').trim();
+        if (sec) lastSec = sec;
+        let h = '';
+        if (sec && sub) h = `${sec}_${sub}`;
+        else if (!sec && sub) h = lastSec ? `${lastSec}_${sub}` : sub;
+        else if (sec) h = sec;
+        else h = `col_${c}`;
+        headers.push(h.replace(/\s+/g, '_'));
+      }
+      const rows: any[] = [];
+      for (let r = 4; r < raw.length; r++) {
+        const row = raw[r];
+        if (!Array.isArray(row) || !row.some((v: any) => String(v).trim() !== '')) continue;
+        const obj: any = {};
+        headers.forEach((h, i) => { obj[h] = row[i] ?? ''; });
+        rows.push(obj);
+      }
+      if (rows.length > 0) return rows;
+    }
+  }
+
+  // 3. Fallback: primera hoja disponible
+  const ws = workbook.Sheets[workbook.SheetNames[0]];
+  return XLSX.utils.sheet_to_json(ws, { raw: false, dateNF: 'dd/mm/yyyy' });
+}
+
 const availableFiles = {
   "2026": {
     "ENERO": "/BASES/2026/ENERO/enero.xlsx",
@@ -182,12 +236,7 @@ export default function KpiPage() {
           const data = await response.arrayBuffer();
           workbook = XLSX.read(data, { type: 'array' });
         }
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        jsonData = XLSX.utils.sheet_to_json(worksheet, {
-          raw: false,
-          dateNF: 'dd/mm/yyyy',
-        });
+        jsonData = readWorkbookRows(workbook);
         jsonData.forEach(row => row.__sourcePath = selectedFile);
         setAllData(jsonData);
       }
@@ -514,9 +563,7 @@ export default function KpiPage() {
           const data = await response.arrayBuffer();
           workbook = XLSX.read(data, { type: 'array' });
         }
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
+        const jsonData: any[] = readWorkbookRows(workbook);
         
         const defaultResult = { 
             name: monthName, 

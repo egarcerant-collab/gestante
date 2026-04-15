@@ -16,6 +16,47 @@ import type { KpiResults, InformeDatos } from "@/lib/types";
 import { generarInformePDF, type PdfImages } from "@/lib/informe-riesgo-pdf";
 import JSZip from "jszip";
 
+function readWorkbookRows(workbook: any): any[] {
+  if (workbook.SheetNames.includes('Hoja1')) {
+    const ws = workbook.Sheets['Hoja1'];
+    const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }) as any[][];
+    if (raw.length > 100) return XLSX.utils.sheet_to_json(ws, { raw: false, dateNF: 'dd/mm/yyyy' });
+  }
+  if (workbook.SheetNames.includes('DATA')) {
+    const ws = workbook.Sheets['DATA'];
+    const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }) as any[][];
+    if (raw.length > 50) {
+      const secRow: string[] = raw[2] as string[];
+      const subRow: string[] = raw[3] as string[];
+      const headers: string[] = [];
+      let lastSec = '';
+      for (let c = 0; c < secRow.length; c++) {
+        const sec = String(secRow[c] ?? '').trim();
+        const sub = String(subRow[c] ?? '').trim();
+        if (sec) lastSec = sec;
+        let h = '';
+        if (sec && sub) h = `${sec}_${sub}`;
+        else if (!sec && sub) h = lastSec ? `${lastSec}_${sub}` : sub;
+        else if (sec) h = sec;
+        else h = `col_${c}`;
+        headers.push(h.replace(/\s+/g, '_'));
+      }
+      const rows: any[] = [];
+      for (let r = 4; r < raw.length; r++) {
+        const row = raw[r];
+        if (!Array.isArray(row) || !row.some((v: any) => String(v).trim() !== '')) continue;
+        const obj: any = {};
+        headers.forEach((h, i) => { obj[h] = row[i] ?? ''; });
+        rows.push(obj);
+      }
+      if (rows.length > 0) return rows;
+    }
+  }
+  const ws = workbook.Sheets[workbook.SheetNames[0]];
+  return XLSX.utils.sheet_to_json(ws, { raw: false, dateNF: 'dd/mm/yyyy' });
+}
+
+
 const availableFiles: Record<string, { name: string; path: string }[]> = {
   "2026": [
     { name: "Enero", path: "/BASES/2026/ENERO/enero.xlsx" },
@@ -185,9 +226,8 @@ export default function ConsolidadoAnualPage() {
           const response = await fetch(fileInfo.path);
           if (!response.ok) { console.warn(`No se pudo cargar ${fileInfo.name}. Saltando...`); continue; }
           const buf = await response.arrayBuffer();
-          const workbook = XLSX.read(buf, { type: "array", cellDates: true, raw: true });
-          const ws = workbook.Sheets[workbook.SheetNames[0]];
-          const jsonData: any[] = XLSX.utils.sheet_to_json(ws, { defval: "" });
+          const workbook = XLSX.read(buf, { type: "array" });
+          const jsonData: any[] = readWorkbookRows(workbook);
           if (jsonData.length > 0) allRows.push(...jsonData.map(r => ({ ...r, MES: fileInfo.name.toUpperCase() })));
         } catch (e) { console.warn(`Error procesando ${fileInfo.path}`, e); }
       }
