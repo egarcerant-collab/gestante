@@ -19,6 +19,7 @@ const availableFiles = {
   "2026": {
     "ENERO": "/BASES/2026/ENERO/enero.xlsx",
     "FEBRERO": "/BASES/2026/FEBRERO/febrero.xlsx",
+    "MARZO": "/BASES/2026/MARZO/marzo.xlsx",
   },
 };
 
