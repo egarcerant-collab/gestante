@@ -750,15 +750,6 @@ export default function KpiPage() {
   const handleIpsChange = (value: string) => {
     const newIps = value === 'todos' ? '' : value;
     setSelectedIps(newIps);
-    if (newIps) {
-      // Al seleccionar una IPS específica, limpiamos municipio para ver TODOS los municipios de esa IPS
-      setSelectedMunicipality('');
-      // Re-expandimos la lista de IPS al scope del departamento seleccionado (no solo del municipio)
-      const base = selectedDepartment
-        ? filterData.filter(d => d.dept === selectedDepartment)
-        : filterData;
-      setIpsList(Array.from(new Set(base.map(d => d.ips))).sort());
-    }
   }
   
   const prepararDatosParaPdf = (kpiData: KpiResults, ips: string, recomendacionesAI?: string[], analisisAnual?: string, firmante?: { nombre: string; cargo: string; firma?: string }, dept?: string, muni?: string): InformeDatos => {
