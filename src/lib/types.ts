@@ -23,6 +23,8 @@ export interface KpiResults {
     ginecologiaResult: number | null;
     denominadorGinecologiaResult: number | null;
     porcentajeGinecologiaResult: number | null;
+    controlesEnMesResult: number | null;
+    controlesFueraMesResult: number | null;
 }
 
 export interface InformeDatos {

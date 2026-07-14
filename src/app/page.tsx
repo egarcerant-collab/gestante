@@ -768,16 +768,53 @@ export default function KpiPage() {
         referencia: "Análisis de indicadores de gestantes basado en el archivo cargado.",
         analisisResumido: [
             `Total de gestantes en control: ${kpiData.gestantesControlResult}`,
-            `Gestantes con captación oportuna: ${kpiData.kpiResult} (${kpiData.controlPercentageResult?.toFixed(2)}%)`
+            `Gestantes con captación oportuna: ${kpiData.kpiResult} (${kpiData.controlPercentageResult?.toFixed(1)}%)`,
+            `Tamizaje VIH: ${kpiData.examenesVihCompletosResult} (${kpiData.resultadoTamizajeVihResult?.toFixed(1)}%)`,
+            `Tamizaje Sífilis: ${kpiData.examenesSifilisCompletosResult} (${kpiData.resultadoTamizajeSifilisResult?.toFixed(1)}%)`,
+            `Tamizaje Toxoplasma: ${kpiData.toxoplasmaValidosResult} (${kpiData.resultadoToxoplasmaResult?.toFixed(1)}%)`,
+            `Tamizaje Hepatitis B: ${kpiData.examenesHbCompletosResult} (${kpiData.resultadoTamizajeHbResult?.toFixed(1)}%)`,
+            `Tamizaje Chagas: ${kpiData.chagasResultadosValidosResult} (${kpiData.resultadoChagasResult?.toFixed(1)}%)`,
+            `Ecografías: ${kpiData.ecografiasValidasResult} (${kpiData.resultadoEcografiasResult?.toFixed(1)}%)`,
+            `Nutrición: ${kpiData.nutricionResult} (${kpiData.resultadoNutricionResult?.toFixed(1)}%)`,
+            `Odontología: ${kpiData.odontologiaResult} (${kpiData.resultadoOdontologiaResult?.toFixed(1)}%)`,
+            `Ginecología (alto riesgo): ${kpiData.ginecologiaResult}/${kpiData.denominadorGinecologiaResult} (${kpiData.porcentajeGinecologiaResult?.toFixed(1)}%)`,
         ],
         datosAExtraer: [
+            { label: "── CAPTACIÓN ──", valor: "" },
             { label: "Gestantes en Control", valor: String(kpiData.gestantesControlResult) },
             { label: "Captación Oportuna (< 10 sem)", valor: String(kpiData.kpiResult) },
             { label: "% Captación Oportuna", valor: `${kpiData.controlPercentageResult?.toFixed(2)}%` },
+            { label: "── TAMIZAJE VIH ──", valor: "" },
             { label: "Exámenes VIH Completos", valor: String(kpiData.examenesVihCompletosResult) },
             { label: "% Tamizaje VIH", valor: `${kpiData.resultadoTamizajeVihResult?.toFixed(2)}%` },
+            { label: "── TAMIZAJE SÍFILIS ──", valor: "" },
             { label: "Exámenes Sífilis Completos", valor: String(kpiData.examenesSifilisCompletosResult) },
             { label: "% Tamizaje Sífilis", valor: `${kpiData.resultadoTamizajeSifilisResult?.toFixed(2)}%` },
+            { label: "── TAMIZAJE TOXOPLASMA ──", valor: "" },
+            { label: "Toxoplasma Válidos", valor: String(kpiData.toxoplasmaValidosResult) },
+            { label: "% Tamizaje Toxoplasma", valor: `${kpiData.resultadoToxoplasmaResult?.toFixed(2)}%` },
+            { label: "── TAMIZAJE HEPATITIS B ──", valor: "" },
+            { label: "Exámenes Hepatitis B Completos", valor: String(kpiData.examenesHbCompletosResult) },
+            { label: "% Tamizaje Hepatitis B", valor: `${kpiData.resultadoTamizajeHbResult?.toFixed(2)}%` },
+            { label: "── TAMIZAJE CHAGAS ──", valor: "" },
+            { label: "Chagas Resultados Válidos", valor: String(kpiData.chagasResultadosValidosResult) },
+            { label: "% Tamizaje Chagas", valor: `${kpiData.resultadoChagasResult?.toFixed(2)}%` },
+            { label: "── ECOGRAFÍAS ──", valor: "" },
+            { label: "Ecografías Válidas", valor: String(kpiData.ecografiasValidasResult) },
+            { label: "% Ecografías", valor: `${kpiData.resultadoEcografiasResult?.toFixed(2)}%` },
+            { label: "── NUTRICIÓN ──", valor: "" },
+            { label: "Consultas Nutrición", valor: String(kpiData.nutricionResult) },
+            { label: "% Nutrición", valor: `${kpiData.resultadoNutricionResult?.toFixed(2)}%` },
+            { label: "── ODONTOLOGÍA ──", valor: "" },
+            { label: "Consultas Odontología", valor: String(kpiData.odontologiaResult) },
+            { label: "% Odontología", valor: `${kpiData.resultadoOdontologiaResult?.toFixed(2)}%` },
+            { label: "── GINECOLOGÍA (ALTO RIESGO) ──", valor: "" },
+            { label: "Numerador Ginecología", valor: String(kpiData.ginecologiaResult) },
+            { label: "Denominador Ginecología", valor: String(kpiData.denominadorGinecologiaResult) },
+            { label: "% Cobertura Ginecología", valor: `${kpiData.porcentajeGinecologiaResult?.toFixed(2)}%` },
+            { label: "── ÚLTIMO CONTROL PRENATAL ──", valor: "" },
+            { label: "Controles en el Mes", valor: String(kpiData.controlesEnMesResult ?? controlesEnMes) },
+            { label: "Controles Fuera del Mes", valor: String(kpiData.controlesFueraMesResult ?? controlesFueraMes) },
         ],
         analisisAnual: analisisAnual,
         hallazgosCalidad: [
@@ -838,7 +875,8 @@ export default function KpiPage() {
         examenesSifilisCompletosResult, resultadoTamizajeSifilisResult, toxoplasmaValidosResult, resultadoToxoplasmaResult,
         examenesHbCompletosResult, resultadoTamizajeHbResult, chagasResultadosValidosResult, resultadoChagasResult,
         ecografiasValidasResult, resultadoEcografiasResult, nutricionResult, resultadoNutricionResult, odontologiaResult,
-        resultadoOdontologiaResult, ginecologiaResult, denominadorGinecologiaResult, porcentajeGinecologiaResult
+        resultadoOdontologiaResult, ginecologiaResult, denominadorGinecologiaResult, porcentajeGinecologiaResult,
+        controlesEnMesResult: controlesEnMes, controlesFueraMesResult: controlesFueraMes
       };
       try {
         const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General", undefined, undefined, firmante);
@@ -942,7 +980,13 @@ export default function KpiPage() {
         const eco3Header = pickHeader(firstClean, ["ecografia", "otras"]);
         const nutricionHeader = pickHeader(firstClean, ["nutricion"]);
         const odontologiaHeader = pickHeader(firstClean, ["odontolog", "fecha"]) || pickHeader(firstClean, ["odontolog"]);
-        
+        const ultimoControlHeaderKpi = pickHeader(firstClean, ["ultimo", "control", "prenatal"]);
+        const controlFechaHeadersKpi = ['fecha_1er_control','fecha_2do_control','fecha_3er_control','fecha_4to_control','fecha_5to_control','fecha_6to_control']
+            .map(h => pickHeader(firstClean, h.split('_'))).filter(Boolean);
+
+        const selectedMonthNumberKpi = monthNameToNumber[selectedMonth?.toUpperCase?.()?.trim() || ''] ?? -1;
+        const yearNumberKpi = parseInt(selectedYear || "0", 10);
+
         let captacionCount = 0;
         let controlCount = 0;
         let sinDatosVihCount = 0;
@@ -953,6 +997,8 @@ export default function KpiPage() {
         let sinDatosEcografiaCount = 0;
         let sinDatosNutricionCount = 0;
         let sinDatosOdontologiaCount = 0;
+        let inPeriodCountKpi = 0;
+        let outOfPeriodCountKpi = 0;
         const totalRegistros = filteredData.length;
 
         const numeradorGinecologia = calcularNumeradorGinecologia(filteredData);
@@ -1022,8 +1068,40 @@ export default function KpiPage() {
           if (sd(odontologiaValue)) {
               sinDatosOdontologiaCount++;
           }
+
+          let ultimoControlValKpi = cleanedRow[ultimoControlHeaderKpi];
+          if (!ultimoControlValKpi && controlFechaHeadersKpi.length > 0) {
+            for (let i = controlFechaHeadersKpi.length - 1; i >= 0; i--) {
+              const v = cleanedRow[controlFechaHeadersKpi[i]];
+              if (v !== undefined && v !== '') { ultimoControlValKpi = v; break; }
+            }
+          }
+          if (ultimoControlValKpi) {
+            let dateKpi: Date | null = null;
+            if (typeof ultimoControlValKpi === 'number') {
+              dateKpi = excelSerialDateToJSDate(ultimoControlValKpi);
+            } else if (typeof ultimoControlValKpi === 'string') {
+              const numVal = parseFloat(ultimoControlValKpi);
+              if (!isNaN(numVal) && !ultimoControlValKpi.includes('/')) {
+                dateKpi = excelSerialDateToJSDate(numVal);
+              } else {
+                const parts = ultimoControlValKpi.split('/');
+                if (parts.length === 3) {
+                  const d = parseInt(parts[0], 10), m = parseInt(parts[1], 10) - 1, y = parseInt(parts[2], 10);
+                  if (!isNaN(d) && !isNaN(m) && !isNaN(y)) dateKpi = new Date(Date.UTC(y, m, d));
+                }
+              }
+            }
+            if (dateKpi instanceof Date && !isNaN(dateKpi.getTime())) {
+              if (dateKpi.getUTCFullYear() === yearNumberKpi && dateKpi.getUTCMonth() === selectedMonthNumberKpi) {
+                inPeriodCountKpi++;
+              } else {
+                outOfPeriodCountKpi++;
+              }
+            }
+          }
         });
-        
+
         const examenesVihCompletos = totalRegistros - sinDatosVihCount;
         const examenesSifilisCompletos = totalRegistros - sinDatosSifilisCount;
         const toxoplasmaValidos = totalRegistros - sinDatosToxoplasmaCount;
@@ -1056,8 +1134,10 @@ export default function KpiPage() {
             ginecologiaResult: numeradorGinecologia,
             denominadorGinecologiaResult: denominadorGinecologia,
             porcentajeGinecologiaResult: denominadorGinecologia > 0 ? (numeradorGinecologia / denominadorGinecologia) * 100 : 0,
+            controlesEnMesResult: inPeriodCountKpi,
+            controlesFueraMesResult: outOfPeriodCountKpi,
         };
-        
+
         resolve(results);
     });
 };
