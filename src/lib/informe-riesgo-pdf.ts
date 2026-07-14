@@ -139,7 +139,16 @@ export function buildDocDefinition(data: InformeDatos, images?: PdfImages): TDoc
                 { text: "Campo", style: "tableHeader" },
                 { text: "Valor", style: "tableHeader" },
               ],
-              ...data.datosAExtraer.map((r) => [r.label, r.valor]),
+              ...data.datosAExtraer.map((r) => {
+                if (r.label.startsWith("──")) {
+                  const title = r.label.replace(/──/g, "").trim();
+                  return [
+                    { text: title, bold: true, fontSize: 10, fillColor: "#e8e8e8", colSpan: 2 },
+                    {}
+                  ];
+                }
+                return [{ text: r.label, fontSize: 10 }, { text: r.valor, fontSize: 10 }];
+              }),
             ],
           },
           layout: "lightHorizontalLines",
