@@ -35,6 +35,25 @@ function readWorkbookRows(workbook: any): any[] {
   // 2. Intentar DATA (formato marzo+: 2 filas de encabezados, datos desde fila 4)
   if (workbook.SheetNames.includes('DATA')) {
     const ws = workbook.Sheets['DATA'];
+    // Truncar rango si tiene columnas vacías hasta el máximo de Excel (XFD=16384)
+    if (ws['!ref']) {
+      const fullRange = XLSX.utils.decode_range(ws['!ref']);
+      if (fullRange.e.c > 500) {
+        let lastUsedCol = 0;
+        for (let r = 2; r <= 3; r++) {
+          for (let c = fullRange.e.c; c >= 0; c--) {
+            const cell = ws[XLSX.utils.encode_cell({ r, c })];
+            if (cell && cell.v !== undefined && String(cell.v).trim() !== '') {
+              lastUsedCol = Math.max(lastUsedCol, c);
+              break;
+            }
+          }
+        }
+        if (lastUsedCol > 0) {
+          ws['!ref'] = XLSX.utils.encode_range({ s: fullRange.s, e: { r: fullRange.e.r, c: lastUsedCol } });
+        }
+      }
+    }
     const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }) as any[][];
     if (raw.length > 50) {
       const secRow: string[] = raw[2] as string[];
