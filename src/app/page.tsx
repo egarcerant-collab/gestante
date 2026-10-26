@@ -340,12 +340,12 @@ export default function KpiPage() {
 
       const controlHeader = pickHeader(firstClean, ["identificacion"]);
       const captacionHeader = pickHeader(firstClean, ["edad", "gest", "inicio", "control"]);
-      const vih1Header = pickHeader(firstClean, ["vih", "primer", "tamiz"]);
-      const vih2Header = pickHeader(firstClean, ["vih", "segundo", "tamiz"]);
-      const vih3Header = pickHeader(firstClean, ["vih", "tercer", "tamiz"]);
-      const sifilis1Header = pickHeader(firstClean, ["sifilis", "primera"]);
-      const sifilis2Header = pickHeader(firstClean, ["sifilis", "segunda"]);
-      const sifilis3Header = pickHeader(firstClean, ["sifilis", "tercera"]);
+      const vih1Header = pickHeader(firstClean, ["vih", "resultado", "primer"]);
+      const vih2Header = pickHeader(firstClean, ["vih", "resultado", "segundo"]);
+      const vih3Header = pickHeader(firstClean, ["vih", "resultado", "tercer"]);
+      const sifilis1Header = pickHeader(firstClean, ["sifilis", "resultado", "primera"]);
+      const sifilis2Header = pickHeader(firstClean, ["sifilis", "resultado", "segunda"]);
+      const sifilis3Header = pickHeader(firstClean, ["sifilis", "resultado", "tercera"]);
       const toxoplasmaHeader = pickHeader(firstClean, ["toxoplasma", "resultado"]);
       const hbResultadoHeader = pickHeader(firstClean, ["hepatitis", "b", "resultado"]);
       const hbFechaHeader = pickHeader(firstClean, ["hepatitis", "b", "fecha"]);
@@ -637,12 +637,12 @@ export default function KpiPage() {
 
         const controlHeader = pickHeader(firstClean, ["identificacion"]);
         const captacionHeader = pickHeader(firstClean, ["edad", "gest", "inicio", "control"]);
-        const vih1Header = pickHeader(firstClean, ["vih", "primer", "tamiz"]);
-        const vih2Header = pickHeader(firstClean, ["vih", "segundo", "tamiz"]);
-        const vih3Header = pickHeader(firstClean, ["vih", "tercer", "tamiz"]);
-        const sifilis1Header = pickHeader(firstClean, ["sifilis", "primera"]);
-        const sifilis2Header = pickHeader(firstClean, ["sifilis", "segunda"]);
-        const sifilis3Header = pickHeader(firstClean, ["sifilis", "tercera"]);
+        const vih1Header = pickHeader(firstClean, ["vih", "resultado", "primer"]);
+        const vih2Header = pickHeader(firstClean, ["vih", "resultado", "segundo"]);
+        const vih3Header = pickHeader(firstClean, ["vih", "resultado", "tercer"]);
+        const sifilis1Header = pickHeader(firstClean, ["sifilis", "resultado", "primera"]);
+        const sifilis2Header = pickHeader(firstClean, ["sifilis", "resultado", "segunda"]);
+        const sifilis3Header = pickHeader(firstClean, ["sifilis", "resultado", "tercera"]);
         const toxoplasmaHeader = pickHeader(firstClean, ["toxoplasma", "resultado"]);
         const hbResultadoHeader = pickHeader(firstClean, ["hepatitis", "b", "resultado"]);
         const hbFechaHeader = pickHeader(firstClean, ["hepatitis", "b", "fecha"]);
@@ -1009,12 +1009,12 @@ export default function KpiPage() {
 
         const controlHeader = pickHeader(firstClean, ["identificacion"]);
         const captacionHeader = pickHeader(firstClean, ["edad", "gest", "inicio", "control"]);
-        const vih1Header = pickHeader(firstClean, ["vih", "primer", "tamiz"]);
-        const vih2Header = pickHeader(firstClean, ["vih", "segundo", "tamiz"]);
-        const vih3Header = pickHeader(firstClean, ["vih", "tercer", "tamiz"]);
-        const sifilis1Header = pickHeader(firstClean, ["sifilis", "primera"]);
-        const sifilis2Header = pickHeader(firstClean, ["sifilis", "segunda"]);
-        const sifilis3Header = pickHeader(firstClean, ["sifilis", "tercera"]);
+        const vih1Header = pickHeader(firstClean, ["vih", "resultado", "primer"]);
+        const vih2Header = pickHeader(firstClean, ["vih", "resultado", "segundo"]);
+        const vih3Header = pickHeader(firstClean, ["vih", "resultado", "tercer"]);
+        const sifilis1Header = pickHeader(firstClean, ["sifilis", "resultado", "primera"]);
+        const sifilis2Header = pickHeader(firstClean, ["sifilis", "resultado", "segunda"]);
+        const sifilis3Header = pickHeader(firstClean, ["sifilis", "resultado", "tercera"]);
         const toxoplasmaHeader = pickHeader(firstClean, ["toxoplasma", "resultado"]);
         const hbResultadoHeader = pickHeader(firstClean, ["hepatitis", "b", "resultado"]);
         const hbFechaHeader = pickHeader(firstClean, ["hepatitis", "b", "fecha"]);
