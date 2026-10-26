@@ -101,6 +101,11 @@ const esToxoValido = (v: any): boolean => {
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return false;
   return true;
 };
+// Odontología/Nutrición desde septiembre: fecha válida != vacío ni 1800-01-01
+const esFechaValida = (v: any): boolean => {
+  const s = String(v ?? '').trim();
+  return s !== '' && s !== '1800-01-01';
+};
 const metodoNuevoLab = (monthNum: number) => monthNum >= 8; // 8 = septiembre (índice 0)
 
 const availableFiles = {
@@ -478,7 +483,7 @@ export default function KpiPage() {
         }
 
         const odontologiaValue = String(cleanedRow[odontologiaHeader] || '').toLowerCase().trim();
-        if (sd(odontologiaValue)) {
+        if (usarNuevoLab ? !esFechaValida(cleanedRow[odontologiaHeader]) : sd(odontologiaValue)) {
             sinDatosOdontologiaCount++;
         }
 
@@ -1127,7 +1132,7 @@ export default function KpiPage() {
           }
 
           const odontologiaValue = String(cleanedRow[odontologiaHeader] || '').toLowerCase().trim();
-          if (sd(odontologiaValue)) {
+          if (usarNuevoLabFinal ? !esFechaValida(cleanedRow[odontologiaHeader]) : sd(odontologiaValue)) {
               sinDatosOdontologiaCount++;
           }
 
