@@ -88,6 +88,13 @@ function readWorkbookRows(workbook: any): any[] {
   return XLSX.utils.sheet_to_json(ws, { raw: false, dateNF: 'dd/mm/yyyy' });
 }
 
+// Desde septiembre 2026: solo "positivo" o "negativo" son resultados válidos de laboratorio
+const esPosNeg = (v: any): boolean => {
+  const s = String(v ?? '').toLowerCase().trim();
+  return s === 'positivo' || s === 'negativo';
+};
+const metodoNuevoLab = (monthNum: number) => monthNum >= 8; // 8 = septiembre (índice 0)
+
 const availableFiles = {
   "2026": {
     "ENERO": "/BASES/2026/ENERO/enero.xlsx",
@@ -407,35 +414,46 @@ export default function KpiPage() {
         }
 
         const sd = (v: string) => v.trim() === '' || v.includes("sin datos") || v.includes("sin dato");
+        const usarNuevoLab = metodoNuevoLab(selectedMonthNumber);
 
         const vih1Value = String(cleanedRow[vih1Header] || '').toLowerCase();
         const vih2Value = String(cleanedRow[vih2Header] || '').toLowerCase();
         const vih3Value = String(cleanedRow[vih3Header] || '').toLowerCase();
-        if (sd(vih1Value) && sd(vih2Value) && sd(vih3Value)) {
-          sinDatosVihCount++;
+        if (usarNuevoLab) {
+          if (esPosNeg(vih1Value) || esPosNeg(vih2Value) || esPosNeg(vih3Value)) sinDatosVihCount++;
+        } else {
+          if (sd(vih1Value) && sd(vih2Value) && sd(vih3Value)) sinDatosVihCount++;
         }
 
         const sif1Value = String(cleanedRow[sifilis1Header] || '').toLowerCase().trim();
         const sif2Value = String(cleanedRow[sifilis2Header] || '').toLowerCase().trim();
         const sif3Value = String(cleanedRow[sifilis3Header] || '').toLowerCase().trim();
-        if (sd(sif1Value) && sd(sif2Value) && sd(sif3Value)) {
-            sinDatosSifilisCount++;
+        if (usarNuevoLab) {
+          if (esPosNeg(sif1Value) || esPosNeg(sif2Value) || esPosNeg(sif3Value)) sinDatosSifilisCount++;
+        } else {
+          if (sd(sif1Value) && sd(sif2Value) && sd(sif3Value)) sinDatosSifilisCount++;
         }
 
         const toxoplasmaValue = String(cleanedRow[toxoplasmaHeader] || '').toLowerCase().trim();
-        if (sd(toxoplasmaValue)) {
-            sinDatosToxoplasmaCount++;
+        if (usarNuevoLab) {
+          if (esPosNeg(toxoplasmaValue)) sinDatosToxoplasmaCount++;
+        } else {
+          if (sd(toxoplasmaValue)) sinDatosToxoplasmaCount++;
         }
 
         const hbResultadoValue = String(cleanedRow[hbResultadoHeader] || '').toLowerCase().trim();
         const hbFechaValue = cleanedRow[hbFechaHeader];
-        if (sd(hbResultadoValue) && !(hbFechaValue === undefined || hbFechaValue === "")) {
-            sinDatosHbCount++;
+        if (usarNuevoLab) {
+          if (esPosNeg(hbResultadoValue)) sinDatosHbCount++;
+        } else {
+          if (sd(hbResultadoValue) && !(hbFechaValue === undefined || hbFechaValue === "")) sinDatosHbCount++;
         }
 
         const chagasValue = String(cleanedRow[chagasHeader] || '').toLowerCase().trim();
-        if (sd(chagasValue)) {
-            sinDatosChagasCount++;
+        if (usarNuevoLab) {
+          if (esPosNeg(chagasValue)) sinDatosChagasCount++;
+        } else {
+          if (sd(chagasValue)) sinDatosChagasCount++;
         }
 
         const eco1Value = String(cleanedRow[eco1Header] || '').toLowerCase().trim();
@@ -496,19 +514,22 @@ export default function KpiPage() {
       setKpiResult(captacionCount);
       setGestantesControlResult(controlCount);
       
-      const examenesVihCompletos = totalRegistros - sinDatosVihCount;
+      const usarNuevoLabPost = metodoNuevoLab(selectedMonthNumber);
+      // Nuevo método (sep+): sinDatos* acumuló conteos pos/neg directamente
+      // Método anterior: válidos = total - sinDatos
+      const examenesVihCompletos = usarNuevoLabPost ? sinDatosVihCount : totalRegistros - sinDatosVihCount;
       setExamenesVihCompletosResult(examenesVihCompletos);
 
-      const examenesSifilisCompletos = totalRegistros - sinDatosSifilisCount;
+      const examenesSifilisCompletos = usarNuevoLabPost ? sinDatosSifilisCount : totalRegistros - sinDatosSifilisCount;
       setExamenesSifilisCompletosResult(examenesSifilisCompletos);
-      
-      const toxoplasmaValidos = totalRegistros - sinDatosToxoplasmaCount;
+
+      const toxoplasmaValidos = usarNuevoLabPost ? sinDatosToxoplasmaCount : totalRegistros - sinDatosToxoplasmaCount;
       setToxoplasmaValidosResult(toxoplasmaValidos);
-      
-      const examenesHbCompletos = totalRegistros - sinDatosHbCount;
+
+      const examenesHbCompletos = usarNuevoLabPost ? sinDatosHbCount : totalRegistros - sinDatosHbCount;
       setExamenesHbCompletosResult(examenesHbCompletos);
-      
-      const chagasResultadosValidos = totalRegistros - sinDatosChagasCount;
+
+      const chagasResultadosValidos = usarNuevoLabPost ? sinDatosChagasCount : totalRegistros - sinDatosChagasCount;
       setChagasResultadosValidosResult(chagasResultadosValidos);
 
       const ecografiasValidas = totalRegistros - sinDatosEcografiaCount;
@@ -1042,35 +1063,46 @@ export default function KpiPage() {
           }
 
           const sd = (v: string) => v.trim() === '' || v.includes("sin datos") || v.includes("sin dato");
+          const usarNuevoLabKpi = metodoNuevoLab(selectedMonthNumberKpi);
 
           const vih1Value = String(cleanedRow[vih1Header] || '').toLowerCase();
           const vih2Value = String(cleanedRow[vih2Header] || '').toLowerCase();
           const vih3Value = String(cleanedRow[vih3Header] || '').toLowerCase();
-          if (sd(vih1Value) && sd(vih2Value) && sd(vih3Value)) {
-            sinDatosVihCount++;
+          if (usarNuevoLabKpi) {
+            if (esPosNeg(vih1Value) || esPosNeg(vih2Value) || esPosNeg(vih3Value)) sinDatosVihCount++;
+          } else {
+            if (sd(vih1Value) && sd(vih2Value) && sd(vih3Value)) sinDatosVihCount++;
           }
 
           const sif1Value = String(cleanedRow[sifilis1Header] || '').toLowerCase().trim();
           const sif2Value = String(cleanedRow[sifilis2Header] || '').toLowerCase().trim();
           const sif3Value = String(cleanedRow[sifilis3Header] || '').toLowerCase().trim();
-          if (sd(sif1Value) && sd(sif2Value) && sd(sif3Value)) {
-              sinDatosSifilisCount++;
+          if (usarNuevoLabKpi) {
+            if (esPosNeg(sif1Value) || esPosNeg(sif2Value) || esPosNeg(sif3Value)) sinDatosSifilisCount++;
+          } else {
+            if (sd(sif1Value) && sd(sif2Value) && sd(sif3Value)) sinDatosSifilisCount++;
           }
 
           const toxoplasmaValue = String(cleanedRow[toxoplasmaHeader] || '').toLowerCase().trim();
-          if (sd(toxoplasmaValue)) {
-              sinDatosToxoplasmaCount++;
+          if (usarNuevoLabKpi) {
+            if (esPosNeg(toxoplasmaValue)) sinDatosToxoplasmaCount++;
+          } else {
+            if (sd(toxoplasmaValue)) sinDatosToxoplasmaCount++;
           }
 
           const hbResultadoValue = String(cleanedRow[hbResultadoHeader] || '').toLowerCase().trim();
           const hbFechaValue = cleanedRow[hbFechaHeader];
-          if (sd(hbResultadoValue) && !(hbFechaValue === undefined || hbFechaValue === "")) {
-              sinDatosHbCount++;
+          if (usarNuevoLabKpi) {
+            if (esPosNeg(hbResultadoValue)) sinDatosHbCount++;
+          } else {
+            if (sd(hbResultadoValue) && !(hbFechaValue === undefined || hbFechaValue === "")) sinDatosHbCount++;
           }
 
           const chagasValue = String(cleanedRow[chagasHeader] || '').toLowerCase().trim();
-          if (sd(chagasValue)) {
-              sinDatosChagasCount++;
+          if (usarNuevoLabKpi) {
+            if (esPosNeg(chagasValue)) sinDatosChagasCount++;
+          } else {
+            if (sd(chagasValue)) sinDatosChagasCount++;
           }
 
           const eco1Value = String(cleanedRow[eco1Header] || '').toLowerCase().trim();
@@ -1123,11 +1155,12 @@ export default function KpiPage() {
           }
         });
 
-        const examenesVihCompletos = totalRegistros - sinDatosVihCount;
-        const examenesSifilisCompletos = totalRegistros - sinDatosSifilisCount;
-        const toxoplasmaValidos = totalRegistros - sinDatosToxoplasmaCount;
-        const examenesHbCompletos = totalRegistros - sinDatosHbCount;
-        const chagasResultadosValidos = totalRegistros - sinDatosChagasCount;
+        const usarNuevoLabFinal = metodoNuevoLab(selectedMonthNumberKpi);
+        const examenesVihCompletos = usarNuevoLabFinal ? sinDatosVihCount : totalRegistros - sinDatosVihCount;
+        const examenesSifilisCompletos = usarNuevoLabFinal ? sinDatosSifilisCount : totalRegistros - sinDatosSifilisCount;
+        const toxoplasmaValidos = usarNuevoLabFinal ? sinDatosToxoplasmaCount : totalRegistros - sinDatosToxoplasmaCount;
+        const examenesHbCompletos = usarNuevoLabFinal ? sinDatosHbCount : totalRegistros - sinDatosHbCount;
+        const chagasResultadosValidos = usarNuevoLabFinal ? sinDatosChagasCount : totalRegistros - sinDatosChagasCount;
         const ecografiasValidas = totalRegistros - sinDatosEcografiaCount;
         const nutricionValidos = totalRegistros - sinDatosNutricionCount;
         const odontologiaValidos = totalRegistros - sinDatosOdontologiaCount;
