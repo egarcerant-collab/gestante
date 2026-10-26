@@ -32,9 +32,10 @@ function readWorkbookRows(workbook: any): any[] {
     }
   }
 
-  // 2. Intentar DATA (formato marzo+: 2 filas de encabezados, datos desde fila 4)
-  if (workbook.SheetNames.includes('DATA')) {
-    const ws = workbook.Sheets['DATA'];
+  // 2. Intentar DATA o GESTANTES ACTIVAS (mismo formato: 4 filas encabezado, datos desde fila 4)
+  const dataSheetName = ['DATA', 'GESTANTES ACTIVAS'].find(n => workbook.SheetNames.includes(n));
+  if (dataSheetName) {
+    const ws = workbook.Sheets[dataSheetName];
     // Truncar rango si tiene columnas vacías hasta el máximo de Excel (XFD=16384)
     if (ws['!ref']) {
       const fullRange = XLSX.utils.decode_range(ws['!ref']);
@@ -105,6 +106,7 @@ const availableFiles = {
     "JUNIO": "/BASES/2026/JUNIO/junio.xlsx",
     "JULIO": "/BASES/2026/JULIO/julio.xlsx",
     "AGOSTO": "/BASES/2026/AGOSTO/agosto.xlsx",
+    "SEPTIEMBRE": "/BASES/2026/SEPTIEMBRE/septiembre.xlsx",
   },
 };
 
