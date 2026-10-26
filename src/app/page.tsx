@@ -89,10 +89,17 @@ function readWorkbookRows(workbook: any): any[] {
   return XLSX.utils.sheet_to_json(ws, { raw: false, dateNF: 'dd/mm/yyyy' });
 }
 
-// Desde septiembre 2026: solo "positivo" o "negativo" son resultados válidos de laboratorio
+// Desde septiembre 2026: solo "positivo" o "negativo" son resultados válidos (VIH, Sífilis, HB, Chagas)
 const esPosNeg = (v: any): boolean => {
   const s = String(v ?? '').toLowerCase().trim();
   return s === 'positivo' || s === 'negativo';
+};
+// Toxoplasma desde septiembre: cualquier resultado EXCEPTO NA, vacío o fechas inválidas
+const esToxoValido = (v: any): boolean => {
+  const s = String(v ?? '').toLowerCase().trim();
+  if (s === '' || s === 'na') return false;
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return false;
+  return true;
 };
 const metodoNuevoLab = (monthNum: number) => monthNum >= 8; // 8 = septiembre (índice 0)
 
@@ -438,7 +445,7 @@ export default function KpiPage() {
 
         const toxoplasmaValue = String(cleanedRow[toxoplasmaHeader] || '').toLowerCase().trim();
         if (usarNuevoLab) {
-          if (esPosNeg(toxoplasmaValue)) sinDatosToxoplasmaCount++;
+          if (esToxoValido(toxoplasmaValue)) sinDatosToxoplasmaCount++;
         } else {
           if (sd(toxoplasmaValue)) sinDatosToxoplasmaCount++;
         }
@@ -1087,7 +1094,7 @@ export default function KpiPage() {
 
           const toxoplasmaValue = String(cleanedRow[toxoplasmaHeader] || '').toLowerCase().trim();
           if (usarNuevoLabKpi) {
-            if (esPosNeg(toxoplasmaValue)) sinDatosToxoplasmaCount++;
+            if (esToxoValido(toxoplasmaValue)) sinDatosToxoplasmaCount++;
           } else {
             if (sd(toxoplasmaValue)) sinDatosToxoplasmaCount++;
           }
