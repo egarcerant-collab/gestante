@@ -182,6 +182,9 @@ export default function KpiPage() {
   const [porcentajeGinecologiaResult, setPorcentajeGinecologiaResult] = useState<number | null>(null);
   const [controlesEnMes, setControlesEnMes] = useState<number | null>(null);
   const [controlesFueraMes, setControlesFueraMes] = useState<number | null>(null);
+  const [proporcion32SemResult, setProporcion32SemResult] = useState<number | null>(null);
+  const [numerador32SemResult, setNumerador32SemResult] = useState<number | null>(null);
+  const [denominador32SemResult, setDenominador32SemResult] = useState<number | null>(null);
 
   const [departments, setDepartments] = useState<string[]>([]);
   const [municipalities, setMunicipalities] = useState<string[]>([]);
@@ -260,6 +263,9 @@ export default function KpiPage() {
     setPorcentajeGinecologiaResult(null);
     setControlesEnMes(null);
     setControlesFueraMes(null);
+    setProporcion32SemResult(null);
+    setNumerador32SemResult(null);
+    setDenominador32SemResult(null);
 
     if (isInitialRun) {
       setHasCalculated(false);
@@ -368,6 +374,8 @@ export default function KpiPage() {
       const nutricionHeader = pickHeader(firstClean, ["nutricion"]);
       const odontologiaHeader = pickHeader(firstClean, ["odontolog", "fecha"]) || pickHeader(firstClean, ["odontolog"]);
       const ultimoControlHeader = pickHeader(firstClean, ["ultimo", "control", "prenatal"]);
+      const edadGestacionalHeader = pickHeader(firstClean, ["edad", "gestacional", "actual"]);
+      const numControlesHeader = pickHeader(firstClean, ["numero", "total", "controles", "prenatal"]);
       const controlFechaHeaders = [
         'fecha_1er_control', 'fecha_2do_control', 'fecha_3er_control',
         'fecha_4to_control', 'fecha_5to_control', 'fecha_6to_control',
@@ -386,6 +394,8 @@ export default function KpiPage() {
       let sinDatosOdontologiaCount = 0;
       let inPeriodCount = 0;
       let outOfPeriodCount = 0;
+      let numer32Sem = 0;
+      let denom32Sem = 0;
       const totalRegistros = filteredData.length;
 
       const numeradorGinecologia = calcularNumeradorGinecologia(filteredData);
@@ -525,8 +535,16 @@ export default function KpiPage() {
                 }
             }
         }
+
+        // KPI: proporción gestantes ≥32 sem con ≥4 controles
+        const edadGest = parseFloat(String(cleanedRow[edadGestacionalHeader] ?? ''));
+        const numControles = parseInt(String(cleanedRow[numControlesHeader] ?? ''));
+        if (!isNaN(edadGest) && edadGest >= 32) {
+          denom32Sem++;
+          if (!isNaN(numControles) && numControles >= 4) numer32Sem++;
+        }
       });
-      
+
       setKpiResult(captacionCount);
       setGestantesControlResult(controlCount);
       
@@ -581,6 +599,9 @@ export default function KpiPage() {
 
       setControlesEnMes(inPeriodCount);
       setControlesFueraMes(outOfPeriodCount);
+      setNumerador32SemResult(numer32Sem);
+      setDenominador32SemResult(denom32Sem);
+      setProporcion32SemResult(denom32Sem > 0 ? (numer32Sem / denom32Sem) * 100 : 0);
       setHasCalculated(true);
 
     } catch (err: any) {
@@ -873,6 +894,10 @@ export default function KpiPage() {
             { label: "── Indicadores de Último Control Prenatal ──", valor: "" },
             { label: "Controles en el Mes", valor: String(kpiData.controlesEnMesResult ?? controlesEnMes) },
             { label: "Controles Fuera del Mes", valor: String(kpiData.controlesFueraMesResult ?? controlesFueraMes) },
+            { label: "── Proporción ≥32 Sem con ≥4 Controles ──", valor: "" },
+            { label: "Numerador (≥32 sem y ≥4 controles)", valor: String(kpiData.numerador32SemResult) },
+            { label: "Denominador (≥32 semanas)", valor: String(kpiData.denominador32SemResult) },
+            { label: "Proporción ≥32 sem con ≥4 controles", valor: `${kpiData.proporcion32SemResult?.toFixed(2)}%` },
         ],
         analisisAnual: analisisAnual,
         hallazgosCalidad: [
@@ -934,7 +959,8 @@ export default function KpiPage() {
         examenesHbCompletosResult, resultadoTamizajeHbResult, chagasResultadosValidosResult, resultadoChagasResult,
         ecografiasValidasResult, resultadoEcografiasResult, nutricionResult, resultadoNutricionResult, odontologiaResult,
         resultadoOdontologiaResult, ginecologiaResult, denominadorGinecologiaResult, porcentajeGinecologiaResult,
-        controlesEnMesResult: controlesEnMes, controlesFueraMesResult: controlesFueraMes
+        controlesEnMesResult: controlesEnMes, controlesFueraMesResult: controlesFueraMes,
+        numerador32SemResult, denominador32SemResult, proporcion32SemResult
       };
       try {
         const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General", undefined, undefined, firmante);
@@ -1039,6 +1065,8 @@ export default function KpiPage() {
         const nutricionHeader = pickHeader(firstClean, ["nutricion"]);
         const odontologiaHeader = pickHeader(firstClean, ["odontolog", "fecha"]) || pickHeader(firstClean, ["odontolog"]);
         const ultimoControlHeaderKpi = pickHeader(firstClean, ["ultimo", "control", "prenatal"]);
+        const edadGestacionalHeaderKpi = pickHeader(firstClean, ["edad", "gestacional", "actual"]);
+        const numControlesHeaderKpi = pickHeader(firstClean, ["numero", "total", "controles", "prenatal"]);
         const controlFechaHeadersKpi = ['fecha_1er_control','fecha_2do_control','fecha_3er_control','fecha_4to_control','fecha_5to_control','fecha_6to_control']
             .map(h => pickHeader(firstClean, h.split('_'))).filter(Boolean);
 
@@ -1057,6 +1085,8 @@ export default function KpiPage() {
         let sinDatosOdontologiaCount = 0;
         let inPeriodCountKpi = 0;
         let outOfPeriodCountKpi = 0;
+        let numer32SemKpi = 0;
+        let denom32SemKpi = 0;
         const totalRegistros = filteredData.length;
 
         const numeradorGinecologia = calcularNumeradorGinecologia(filteredData);
@@ -1171,6 +1201,14 @@ export default function KpiPage() {
               }
             }
           }
+
+          // KPI: proporción gestantes ≥32 sem con ≥4 controles
+          const edadGestKpi = parseFloat(String(cleanedRow[edadGestacionalHeaderKpi] ?? ''));
+          const numControlesKpi = parseInt(String(cleanedRow[numControlesHeaderKpi] ?? ''));
+          if (!isNaN(edadGestKpi) && edadGestKpi >= 32) {
+            denom32SemKpi++;
+            if (!isNaN(numControlesKpi) && numControlesKpi >= 4) numer32SemKpi++;
+          }
         });
 
         const usarNuevoLabFinal = metodoNuevoLab(selectedMonthNumberKpi);
@@ -1208,6 +1246,9 @@ export default function KpiPage() {
             porcentajeGinecologiaResult: denominadorGinecologia > 0 ? (numeradorGinecologia / denominadorGinecologia) * 100 : 0,
             controlesEnMesResult: inPeriodCountKpi,
             controlesFueraMesResult: outOfPeriodCountKpi,
+            numerador32SemResult: numer32SemKpi,
+            denominador32SemResult: denom32SemKpi,
+            proporcion32SemResult: denom32SemKpi > 0 ? (numer32SemKpi / denom32SemKpi) * 100 : 0,
         };
 
         resolve(results);
@@ -1431,7 +1472,15 @@ const handleDownloadConsolidatedXls = async () => {
         { title: "Controles en el Mes", value: controlesEnMes, description: "Controles prenatales realizados en el mes seleccionado." },
         { title: "Controles Fuera del Mes", value: controlesFueraMes, description: "Controles prenatales realizados fuera del mes seleccionado." },
       ]
-    }
+    },
+    {
+      title: "Proporción Gestantes ≥32 Sem con ≥4 Controles",
+      kpis: [
+        { title: "Numerador (≥32 sem y ≥4 controles)", value: numerador32SemResult, description: "Gestantes con ≥32 semanas de gestación y ≥4 controles prenatales." },
+        { title: "Denominador (≥32 semanas)", value: denominador32SemResult, description: "Total de gestantes con edad gestacional actual ≥32 semanas." },
+        { title: "Proporción ≥32 sem con ≥4 controles", value: proporcion32SemResult, isPercentage: true, description: "% de gestantes con ≥32 sem que tienen ≥4 controles prenatales." },
+      ]
+    },
   ];
 
   const groupPalette = [

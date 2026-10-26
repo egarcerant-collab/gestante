@@ -25,6 +25,9 @@ export interface KpiResults {
     porcentajeGinecologiaResult: number | null;
     controlesEnMesResult: number | null;
     controlesFueraMesResult: number | null;
+    numerador32SemResult: number | null;
+    denominador32SemResult: number | null;
+    proporcion32SemResult: number | null;
 }
 
 export interface InformeDatos {
