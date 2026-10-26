@@ -473,12 +473,14 @@ export default function KpiPage() {
         const eco1Value = String(cleanedRow[eco1Header] || '').toLowerCase().trim();
         const eco2Value = String(cleanedRow[eco2Header] || '').toLowerCase().trim();
         const eco3Value = String(cleanedRow[eco3Header] || '').toLowerCase().trim();
-        if (sd(eco1Value) && sd(eco2Value) && sd(eco3Value)) {
+        if (usarNuevoLab
+          ? (!esFechaValida(cleanedRow[eco1Header]) && !esFechaValida(cleanedRow[eco2Header]) && !esFechaValida(cleanedRow[eco3Header]))
+          : (sd(eco1Value) && sd(eco2Value) && sd(eco3Value))) {
             sinDatosEcografiaCount++;
         }
 
         const nutricionValue = String(cleanedRow[nutricionHeader] || '').toLowerCase().trim();
-        if (sd(nutricionValue)) {
+        if (usarNuevoLab ? !esFechaValida(cleanedRow[nutricionHeader]) : sd(nutricionValue)) {
             sinDatosNutricionCount++;
         }
 
@@ -1122,12 +1124,14 @@ export default function KpiPage() {
           const eco1Value = String(cleanedRow[eco1Header] || '').toLowerCase().trim();
           const eco2Value = String(cleanedRow[eco2Header] || '').toLowerCase().trim();
           const eco3Value = String(cleanedRow[eco3Header] || '').toLowerCase().trim();
-          if (sd(eco1Value) && sd(eco2Value) && sd(eco3Value)) {
+          if (usarNuevoLabFinal
+            ? (!esFechaValida(cleanedRow[eco1Header]) && !esFechaValida(cleanedRow[eco2Header]) && !esFechaValida(cleanedRow[eco3Header]))
+            : (sd(eco1Value) && sd(eco2Value) && sd(eco3Value))) {
               sinDatosEcografiaCount++;
           }
 
           const nutricionValue = String(cleanedRow[nutricionHeader] || '').toLowerCase().trim();
-          if (sd(nutricionValue)) {
+          if (usarNuevoLabFinal ? !esFechaValida(cleanedRow[nutricionHeader]) : sd(nutricionValue)) {
               sinDatosNutricionCount++;
           }
 

@@ -24,7 +24,7 @@ export function calcularNumeradorGinecologia(rowsRaw: Record<string, any>[]): nu
   const norm = (s: any) => clean(String(s ?? "").trim());
   const esSinDato = (s: any) => {
     const v = norm(s);
-    return v === "" || v === "sin_dato" || v === "sin_datos" || v === "si_datos";
+    return v === "" || v === "sin_dato" || v === "sin_datos" || v === "si_datos" || v === "1800_01_01";
   };
 
   // Detectar columnas escaneando todas las filas (la primera puede tener celdas vacías)
