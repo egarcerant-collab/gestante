@@ -28,6 +28,8 @@ export interface KpiResults {
     numerador32SemResult: number | null;
     denominador32SemResult: number | null;
     proporcion32SemResult: number | null;
+    anemiaResult: number | null;
+    proporcionAnemiaResult: number | null;
 }
 
 export interface InformeDatos {

@@ -185,6 +185,8 @@ export default function KpiPage() {
   const [proporcion32SemResult, setProporcion32SemResult] = useState<number | null>(null);
   const [numerador32SemResult, setNumerador32SemResult] = useState<number | null>(null);
   const [denominador32SemResult, setDenominador32SemResult] = useState<number | null>(null);
+  const [anemiaResult, setAnemiaResult] = useState<number | null>(null);
+  const [proporcionAnemiaResult, setProporcionAnemiaResult] = useState<number | null>(null);
 
   const [departments, setDepartments] = useState<string[]>([]);
   const [municipalities, setMunicipalities] = useState<string[]>([]);
@@ -266,6 +268,8 @@ export default function KpiPage() {
     setProporcion32SemResult(null);
     setNumerador32SemResult(null);
     setDenominador32SemResult(null);
+    setAnemiaResult(null);
+    setProporcionAnemiaResult(null);
 
     if (isInitialRun) {
       setHasCalculated(false);
@@ -376,6 +380,9 @@ export default function KpiPage() {
       const ultimoControlHeader = pickHeader(firstClean, ["ultimo", "control", "prenatal"]);
       const edadGestacionalHeader = pickHeader(firstClean, ["edad", "gestacional", "actual"]);
       const numControlesHeader = pickHeader(firstClean, ["numero", "total", "controles", "prenatal"]);
+      const hb1Header = pickHeader(firstClean, ["hemoglobin", "resultado", "1ra"]);
+      const hb2Header = pickHeader(firstClean, ["hemoglobin", "resultado", "2da"]);
+      const hb3Header = pickHeader(firstClean, ["hemoglobin", "resultado", "3ra"]);
       const controlFechaHeaders = [
         'fecha_1er_control', 'fecha_2do_control', 'fecha_3er_control',
         'fecha_4to_control', 'fecha_5to_control', 'fecha_6to_control',
@@ -396,6 +403,7 @@ export default function KpiPage() {
       let outOfPeriodCount = 0;
       let numer32Sem = 0;
       let denom32Sem = 0;
+      let anemiaCount = 0;
       const totalRegistros = filteredData.length;
 
       const numeradorGinecologia = calcularNumeradorGinecologia(filteredData);
@@ -543,6 +551,14 @@ export default function KpiPage() {
           denom32Sem++;
           if (!isNaN(numControles) && numControles >= 4) numer32Sem++;
         }
+
+        // KPI: Proporción gestantes con Anemia (cualquier Hb ≤11)
+        const hb1Val = parseFloat(String(cleanedRow[hb1Header] ?? ''));
+        const hb2Val = parseFloat(String(cleanedRow[hb2Header] ?? ''));
+        const hb3Val = parseFloat(String(cleanedRow[hb3Header] ?? ''));
+        if ((!isNaN(hb1Val) && hb1Val <= 11) || (!isNaN(hb2Val) && hb2Val <= 11) || (!isNaN(hb3Val) && hb3Val <= 11)) {
+          anemiaCount++;
+        }
       });
 
       setKpiResult(captacionCount);
@@ -602,6 +618,8 @@ export default function KpiPage() {
       setNumerador32SemResult(numer32Sem);
       setDenominador32SemResult(denom32Sem);
       setProporcion32SemResult(denom32Sem > 0 ? (numer32Sem / denom32Sem) * 100 : 0);
+      setAnemiaResult(anemiaCount);
+      setProporcionAnemiaResult(controlCount > 0 ? (anemiaCount / controlCount) * 100 : 0);
       setHasCalculated(true);
 
     } catch (err: any) {
@@ -898,6 +916,10 @@ export default function KpiPage() {
             { label: "Numerador (≥32 sem y ≥4 controles)", valor: String(kpiData.numerador32SemResult) },
             { label: "Denominador (≥32 semanas)", valor: String(kpiData.denominador32SemResult) },
             { label: "Proporción ≥32 sem con ≥4 controles", valor: `${kpiData.proporcion32SemResult?.toFixed(2)}%` },
+            { label: "── Proporción de Gestantes con Anemia ──", valor: "" },
+            { label: "Gestantes con Anemia (Hb ≤11)", valor: String(kpiData.anemiaResult) },
+            { label: "Total Gestantes en Control", valor: String(kpiData.gestantesControlResult) },
+            { label: "Proporción con Anemia", valor: `${kpiData.proporcionAnemiaResult?.toFixed(2)}%` },
         ],
         analisisAnual: analisisAnual,
         hallazgosCalidad: [
@@ -960,7 +982,8 @@ export default function KpiPage() {
         ecografiasValidasResult, resultadoEcografiasResult, nutricionResult, resultadoNutricionResult, odontologiaResult,
         resultadoOdontologiaResult, ginecologiaResult, denominadorGinecologiaResult, porcentajeGinecologiaResult,
         controlesEnMesResult: controlesEnMes, controlesFueraMesResult: controlesFueraMes,
-        numerador32SemResult, denominador32SemResult, proporcion32SemResult
+        numerador32SemResult, denominador32SemResult, proporcion32SemResult,
+        anemiaResult, proporcionAnemiaResult
       };
       try {
         const datosParaPdf = prepararDatosParaPdf(currentKpiData, selectedIps || "Consolidado General", undefined, undefined, firmante);
@@ -1067,6 +1090,9 @@ export default function KpiPage() {
         const ultimoControlHeaderKpi = pickHeader(firstClean, ["ultimo", "control", "prenatal"]);
         const edadGestacionalHeaderKpi = pickHeader(firstClean, ["edad", "gestacional", "actual"]);
         const numControlesHeaderKpi = pickHeader(firstClean, ["numero", "total", "controles", "prenatal"]);
+        const hb1HeaderKpi = pickHeader(firstClean, ["hemoglobin", "resultado", "1ra"]);
+        const hb2HeaderKpi = pickHeader(firstClean, ["hemoglobin", "resultado", "2da"]);
+        const hb3HeaderKpi = pickHeader(firstClean, ["hemoglobin", "resultado", "3ra"]);
         const controlFechaHeadersKpi = ['fecha_1er_control','fecha_2do_control','fecha_3er_control','fecha_4to_control','fecha_5to_control','fecha_6to_control']
             .map(h => pickHeader(firstClean, h.split('_'))).filter(Boolean);
 
@@ -1087,6 +1113,7 @@ export default function KpiPage() {
         let outOfPeriodCountKpi = 0;
         let numer32SemKpi = 0;
         let denom32SemKpi = 0;
+        let anemiaCountKpi = 0;
         const totalRegistros = filteredData.length;
 
         const numeradorGinecologia = calcularNumeradorGinecologia(filteredData);
@@ -1209,6 +1236,14 @@ export default function KpiPage() {
             denom32SemKpi++;
             if (!isNaN(numControlesKpi) && numControlesKpi >= 4) numer32SemKpi++;
           }
+
+          // KPI: Proporción gestantes con Anemia (cualquier Hb ≤11)
+          const hb1ValKpi = parseFloat(String(cleanedRow[hb1HeaderKpi] ?? ''));
+          const hb2ValKpi = parseFloat(String(cleanedRow[hb2HeaderKpi] ?? ''));
+          const hb3ValKpi = parseFloat(String(cleanedRow[hb3HeaderKpi] ?? ''));
+          if ((!isNaN(hb1ValKpi) && hb1ValKpi <= 11) || (!isNaN(hb2ValKpi) && hb2ValKpi <= 11) || (!isNaN(hb3ValKpi) && hb3ValKpi <= 11)) {
+            anemiaCountKpi++;
+          }
         });
 
         const usarNuevoLabFinal = metodoNuevoLab(selectedMonthNumberKpi);
@@ -1249,6 +1284,8 @@ export default function KpiPage() {
             numerador32SemResult: numer32SemKpi,
             denominador32SemResult: denom32SemKpi,
             proporcion32SemResult: denom32SemKpi > 0 ? (numer32SemKpi / denom32SemKpi) * 100 : 0,
+            anemiaResult: anemiaCountKpi,
+            proporcionAnemiaResult: controlCount > 0 ? (anemiaCountKpi / controlCount) * 100 : 0,
         };
 
         resolve(results);
@@ -1479,6 +1516,14 @@ const handleDownloadConsolidatedXls = async () => {
         { title: "Numerador (≥32 sem y ≥4 controles)", value: numerador32SemResult, description: "Gestantes con ≥32 semanas de gestación y ≥4 controles prenatales." },
         { title: "Denominador (≥32 semanas)", value: denominador32SemResult, description: "Total de gestantes con edad gestacional actual ≥32 semanas." },
         { title: "Proporción ≥32 sem con ≥4 controles", value: proporcion32SemResult, isPercentage: true, description: "% de gestantes con ≥32 sem que tienen ≥4 controles prenatales." },
+      ]
+    },
+    {
+      title: "Proporción de Gestantes con Anemia",
+      kpis: [
+        { title: "Gestantes con Anemia (Hb ≤11)", value: anemiaResult, description: "Gestantes con al menos un resultado de Hemoglobina ≤11 g/dL." },
+        { title: "Total Gestantes en Control", value: gestantesControlResult, description: "Total de gestantes en control (denominador)." },
+        { title: "Proporción con Anemia", value: proporcionAnemiaResult, isPercentage: true, description: "% de gestantes en control con Hemoglobina ≤11 g/dL." },
       ]
     },
   ];
