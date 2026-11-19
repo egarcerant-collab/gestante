@@ -119,6 +119,7 @@ const availableFiles = {
     "JULIO": "/BASES/2026/JULIO/julio.xlsx",
     "AGOSTO": "/BASES/2026/AGOSTO/agosto.xlsx",
     "SEPTIEMBRE": "/BASES/2026/SEPTIEMBRE/septiembre.xlsx",
+    "OCTUBRE": "/BASES/2026/OCTUBRE/octubre.xlsx",
   },
 };
 

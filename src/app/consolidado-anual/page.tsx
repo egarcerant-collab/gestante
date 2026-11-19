@@ -68,6 +68,7 @@ const availableFiles: Record<string, { name: string; path: string }[]> = {
     { name: "Julio", path: "/BASES/2026/JULIO/julio.xlsx" },
     { name: "Agosto", path: "/BASES/2026/AGOSTO/agosto.xlsx" },
     { name: "Septiembre", path: "/BASES/2026/SEPTIEMBRE/septiembre.xlsx" },
+    { name: "Octubre", path: "/BASES/2026/OCTUBRE/octubre.xlsx" },
   ],
 };
 
